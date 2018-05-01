@@ -1,0 +1,13 @@
+{
+  "name": "friday-fellows-updater",
+  "version": "1.0.0",
+  "description": "NodeJS MAL updater for Friday Fellows",
+  "main": "index.js",
+  "repository": "https://github.com/brisberg/friday-fellows-updater.git",
+  "author": "brisberg <brandon.risberg@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "node": "^10.0.0"
+  }
+}
