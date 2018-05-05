@@ -16,8 +16,7 @@ async function main() {
 
     try {
         sheets = await initializeGoogleClient(SCOPES);
-        mal = new Chinmei('FridayFellows', '');
-        await mal.verifyAuth();
+        mal = await initializeChinmeiClient(MAL_CRED_PATH);
     } catch (err) {
         console.log('Initialization error: ' + err);
         process.exit(1);
@@ -63,6 +62,30 @@ try {
 }
 catch (err) {
     console.log(err);
+}
+
+function initializeChinmeiClient(cred_path) {
+    return new Promise(async (resolve, reject) => {
+        // Load mal credentials from a local file.
+        fs.readFile(cred_path, async (err, content) => {
+          if (err) {
+              console.log('Error loading MAL client credentials file:', err);
+              reject(err);
+          }
+          // Authorize a client with credentials, then verify with MAL api.
+          const {username, password} = JSON.parse(content);
+
+          try {
+                const mal = new Chinmei(username, password);
+                await mal.verifyAuth();
+                resolve(mal);
+            } catch (err) {
+                reject(err);
+            }
+      });
+
+
+    });
 }
 
 /**

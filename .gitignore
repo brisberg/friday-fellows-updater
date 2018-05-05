@@ -11,6 +11,7 @@ yarn-error.log*
 # Creds
 client_secret.json
 credentials.json
+mal_credentials.json
 
 # Runtime data
 pids

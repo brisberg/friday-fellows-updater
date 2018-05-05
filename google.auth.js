@@ -18,7 +18,7 @@ exports.initializeGoogleClient = function(SCOPES) {
               resolve(google.sheets({version: 'v4', auth}));
           });
         });
-    })
+    });
 }
 
 /**
