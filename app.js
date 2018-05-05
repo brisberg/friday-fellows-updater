@@ -12,10 +12,10 @@ const Chinmei = require('chinmei');
 const MAL_CRED_PATH = 'mal_credentials.json';
 
 async function main() {
-    let sheets, auth, mal;
+    let sheets, mal;
 
     try {
-        ({sheets, auth} = await initializeGoogleClient(SCOPES));
+        sheets = await initializeGoogleClient(SCOPES);
         mal = new Chinmei('FridayFellows', '');
         await mal.verifyAuth();
     } catch (err) {
@@ -31,7 +31,6 @@ async function main() {
         throw err;
     });
     const sheetsFetchP = promisify(sheets.spreadsheets.values.get, {
-        auth: auth,
         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
         majorDimension: 'ROWS',
         range: '\'SPRING 2018\'!A2:K30',

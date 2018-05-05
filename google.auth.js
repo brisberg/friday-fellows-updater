@@ -15,10 +15,7 @@ exports.initializeGoogleClient = function(SCOPES) {
           }
           // Authorize a client with credentials, then call the Google Drive API.
           authorize(JSON.parse(content), (auth) => {
-              resolve({
-                  sheets: google.sheets({version: 'v4', auth}),
-                  auth: auth
-              });
+              resolve(google.sheets({version: 'v4', auth}));
           });
         });
     })
