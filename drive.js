@@ -84,31 +84,39 @@ function listFiles(auth) {
   });
 }
 
+function promisifiy(fn, params) {
+    return new Promise((resolve, reject) => {
+        fn(params, (err, res) => {
+            if (err) reject(err);
+            resolve(res);
+        });
+    });
+}
+
 /**
  * Reads data from the voting sheet.
  */
  function loadingVotingSheet(auth) {
-     const sheets = google.sheets({version: 'v4', auth});
-     sheets.spreadsheets.values.get({
+    const sheets = google.sheets({version: 'v4', auth});
+    promisifiy(sheets.spreadsheets.values.get, {
          auth: auth,
          spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
          majorDimension: 'COLUMNS',
          range: 'A2:B25',
-     }, (err, res) => {
-    if (err) {
-      console.error('The API returned an error.');
-      throw err;
-    }
-    const rows = res.data.values;
-    if (rows.length === 0) {
-      console.log('No data found.');
-    } else {
-      //console.log('Name, Major:');
-      // for (const row of rows) {
-      //   // Print columns A and E, which correspond to indices 0 and 4.
-      //   console.log(`${row[0]}, ${row[4]}`);
-      // }
-      console.log(JSON.stringify(rows));
-    }
-  });
- }
+    }).then(res => {
+         const rows = res.data.values;
+         if (rows.length === 0) {
+           console.log('No data found.');
+         } else {
+           //console.log('Name, Major:');
+           // for (const row of rows) {
+           //   // Print columns A and E, which correspond to indices 0 and 4.
+           //   console.log(`${row[0]}, ${row[4]}`);
+           // }
+           console.log(JSON.stringify(rows));
+         }
+    }).catch(err => {
+         console.error('The API returned an error.');
+         throw err;
+    });
+}
