@@ -12,7 +12,7 @@ const Chinmei = require('chinmei');
 const MAL_CRED_PATH = 'mal_credentials.json';
 
 async function main() {
-    let sheets, mal;
+    let sheets, mal; // API clients
 
     try {
         sheets = await initializeGoogleClient(SCOPES);
@@ -32,7 +32,7 @@ async function main() {
     const sheetsFetchP = promisify(sheets.spreadsheets.values.get, {
         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
         majorDimension: 'ROWS',
-        range: '\'SPRING 2018\'!A2:K30',
+        range: '\'FALL 2016\'!A2:K30',
     }).then(res => {
         const rows = res.data.values;
         if (rows.length === 0) {
@@ -53,6 +53,29 @@ async function main() {
     console.log('Got all the results')
     console.log('List length: ' + animeList.length);
     console.log('Voting results for ' + votingRows.length + ' series');
+
+    // Do the processing
+    votingRows.forEach((row) => {
+        let title = row[0];
+        const animeRecord = animeList.find(record => record.series_title === title);
+
+        if (!animeRecord) {
+            console.log('No record found for ' + title);
+            // Add a new show
+            // Search for the title
+                // If found, add the new show with the specified episode count
+                // If not found, log an error
+            return;
+        }
+
+        const lastCell = row[row.length-1];
+        const episode = parseEpisodeNumber(lastCell);
+        console.log(title + " Ep. " + episode);
+    });
+}
+
+function parseEpisodeNumber(value) {
+    return parseInt(value.substr(value.indexOf('Ep. ') + 4, 2));
 }
 
 try {
