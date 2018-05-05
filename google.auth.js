@@ -5,12 +5,24 @@ const OAuth2Client = google.auth.OAuth2;
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 const TOKEN_PATH = 'credentials.json';
 
-// Load client secrets from a local file.
-fs.readFile('client_secret.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Google Drive API.
-  authorize(JSON.parse(content), loadingVotingSheet);
-});
+exports.initializeGoogleClient = function(SCOPES) {
+    return new Promise((resolve, reject) => {
+        // Load client secrets from a local file.
+        fs.readFile('client_secret.json', (err, content) => {
+          if (err) {
+              console.log('Error loading client secret file:', err);
+              reject(err);
+          }
+          // Authorize a client with credentials, then call the Google Drive API.
+          authorize(JSON.parse(content), (auth) => {
+              resolve({
+                  sheets: google.sheets({version: 'v4', auth}),
+                  auth: auth
+              });
+          });
+        });
+    })
+}
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -60,55 +72,3 @@ function getAccessToken(oAuth2Client, callback) {
     });
   });
 }
-
-/**
- * Lists the names and IDs of up to 10 files.
- * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- */
-function listFiles(auth) {
-  const drive = google.drive({version: 'v3', auth});
-  drive.files.list({
-    pageSize: 10,
-    fields: 'nextPageToken, files(id, name)',
-  }, (err, {data}) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    const files = data.files;
-    if (files.length) {
-      console.log('Files:');
-      files.map((file) => {
-        console.log(`${file.name} (${file.id})`);
-      });
-    } else {
-      console.log('No files found.');
-    }
-  });
-}
-
-/**
- * Reads data from the voting sheet.
- */
- function loadingVotingSheet(auth) {
-     const sheets = google.sheets({version: 'v4', auth});
-     sheets.spreadsheets.values.get({
-         auth: auth,
-         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
-         majorDimension: 'COLUMNS',
-         range: 'A2:B25',
-     }, (err, res) => {
-    if (err) {
-      console.error('The API returned an error.');
-      throw err;
-    }
-    const rows = res.data.values;
-    if (rows.length === 0) {
-      console.log('No data found.');
-    } else {
-      //console.log('Name, Major:');
-      // for (const row of rows) {
-      //   // Print columns A and E, which correspond to indices 0 and 4.
-      //   console.log(`${row[0]}, ${row[4]}`);
-      // }
-      console.log(JSON.stringify(rows));
-    }
-  });
- }
