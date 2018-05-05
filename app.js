@@ -32,7 +32,7 @@ async function main() {
     const sheetsFetchP = promisify(sheets.spreadsheets.values.get, {
         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
         majorDimension: 'ROWS',
-        range: '\'FALL 2016\'!A2:K30',
+        range: '\'SPRING 2014\'!A2:K30',
     }).then(res => {
         const rows = res.data.values;
         if (rows.length === 0) {
@@ -54,6 +54,11 @@ async function main() {
     console.log('List length: ' + animeList.length);
     console.log('Voting results for ' + votingRows.length + ' series');
 
+    // mal.updateAnime({
+    //     id: 32979,
+    //     episode: 4,
+    // }).then((res) => console.log(res));
+
     // Do the processing
     votingRows.forEach((row) => {
         let title = row[0];
@@ -68,14 +73,39 @@ async function main() {
             return;
         }
 
-        const lastCell = row[row.length-1];
-        const episode = parseEpisodeNumber(lastCell);
-        console.log(title + " Ep. " + episode);
+        let index = row.length-1;
+        while (index >= 1 && row[index] === 'BYE') {
+            index--;
+        }
+        let episode, votesFor, votesAgainst = 0;
+        if (index !== 0) {
+            const lastCell = row[index];
+            ({episode, votesFor, votesAgainst} = parseVoteCell(lastCell));
+        }
+
+        console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
+        const animePayload = {
+            id: animeRecord.series_animedb_id,
+            episode: episode,
+        };
+        if (!animeRecord.my_tags.includes('SPRING 2014')) {
+            animePayload.tags = 'SPRING 2014, ' + animeRecord.my_tags;
+        }
+
+        //await mal.updateAnime(animePayload);
     });
 }
 
-function parseEpisodeNumber(value) {
-    return parseInt(value.substr(value.indexOf('Ep. ') + 4, 2));
+/**
+ * Parses a string of the form "Ep. <epNum>: <votesFor> to <votesAgainst>" into
+ * its variable values.
+ */
+function parseVoteCell(value) {
+    const parts = value.split(' ');
+    const episode = parseInt(parts[1].slice(0, -1));
+    const votesFor = parseInt(parts[2]);
+    const votesAgainst = parseInt(parts[4]);
+    return {episode, votesFor, votesAgainst};
 }
 
 try {
