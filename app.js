@@ -11,8 +11,28 @@ const {initializeGoogleClient} = require('./google.auth.js');
 const Chinmei = require('chinmei');
 const MAL_CRED_PATH = 'mal_credentials.json';
 
+const STATUS = {
+    WATCHING: 1,
+    COMPLETED: 2,
+    ONHOLD: 3,
+    DROPPED: 4,
+    PLANTOWATCH: 6,
+};
+
+// Mapping of season name to starting month (Jan, Api, Jul, Oct).
+const SEASON = {
+    WINTER: 1,
+    SPRING: 4,
+    SUMMER: 7,
+    FALL: 10,
+}
+
 async function main() {
     let sheets, mal; // API clients
+    const season = 'SPRING 2014'
+    const seasonTag = season.toLowerCase().split(' ').map(function(word) {
+        return (word.charAt(0).toUpperCase() + word.slice(1));
+      }).join(' ');
 
     try {
         sheets = await initializeGoogleClient(SCOPES);
@@ -32,7 +52,7 @@ async function main() {
     const sheetsFetchP = promisify(sheets.spreadsheets.values.get, {
         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
         majorDimension: 'ROWS',
-        range: '\'SPRING 2014\'!A2:K30',
+        range: '\'' + season + '\'!A2:K30',
     }).then(res => {
         const rows = res.data.values;
         if (rows.length === 0) {
@@ -59,6 +79,17 @@ async function main() {
     //     episode: 4,
     // }).then((res) => console.log(res));
 
+    const seasonStartDate = new Date();
+    const [seasonName, year] = season.split(' ');
+    seasonStartDate.setMonth(SEASON[seasonName]);
+    seasonStartDate.setYear(parseInt(year));
+    seasonStartDate.setDate(1);
+    const offset = (13 - seasonStartDate.getDay())%7; // Date of the first Friday of the month
+    seasonStartDate.setDate(offset);
+
+    console.log(seasonStartDate.getFullYear() + '-' + seasonStartDate.getMonth() + '-' + seasonStartDate.getDate());
+
+
     // Do the processing
     votingRows.forEach((row) => {
         let title = row[0];
@@ -81,6 +112,8 @@ async function main() {
         if (index !== 0) {
             const lastCell = row[index];
             ({episode, votesFor, votesAgainst} = parseVoteCell(lastCell));
+        } else {
+            // No vote records in this row, set ep and votes to 0?
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
@@ -88,9 +121,20 @@ async function main() {
             id: animeRecord.series_animedb_id,
             episode: episode,
         };
-        if (!animeRecord.my_tags.includes('SPRING 2014')) {
-            animePayload.tags = 'SPRING 2014, ' + animeRecord.my_tags;
+        if (episode === animeRecord.series_episodes) {
+            animePayload.status = STATUS.COMPLETED;
+            // Add weeks since the first Friday of the season
+            const endDate = new Date(seasonStartDate.getTime());
+            endDate.setDate(endDate.getDate() + (7 * index-1));
+            animePayload.date_finish = endDate;
+        } else if (votesFor < votesAgainst) {
+            animePayload.status = STATUS.DROPPED;
         }
+        if (!animeRecord.my_tags.includes(seasonTag)) {
+            animePayload.tags = seasonTag + ', ' + animeRecord.my_tags;
+        }
+
+        console.log(animePayload);
 
         //await mal.updateAnime(animePayload);
     });
