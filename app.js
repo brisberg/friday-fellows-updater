@@ -20,16 +20,16 @@ const STATUS = {
 };
 
 // Mapping of season name to starting month (Jan, Api, Jul, Oct).
-const SEASON = {
-    WINTER: 1,
-    SPRING: 4,
-    SUMMER: 7,
-    FALL: 10,
-}
+// const SEASON = {
+//     WINTER: 1,
+//     SPRING: 4,
+//     SUMMER: 7,
+//     FALL: 10,
+// }
 
 async function main() {
     let sheets, mal; // API clients
-    const season = 'SPRING 2014'
+    const season = 'WINTER 2014'
     const seasonTag = season.toLowerCase().split(' ').map(function(word) {
         return (word.charAt(0).toUpperCase() + word.slice(1));
       }).join(' ');
@@ -74,17 +74,17 @@ async function main() {
     console.log('List length: ' + animeList.length);
     console.log('Voting results for ' + votingRows.length + ' series');
 
-    const seasonStartDate = new Date();
-    const [seasonName, year] = season.split(' ');
-    seasonStartDate.setMonth(SEASON[seasonName]);
-    seasonStartDate.setYear(parseInt(year));
-    seasonStartDate.setDate(1);
-    const offset = (13 - seasonStartDate.getDay())%7; // Date of the first Friday of the month
-    seasonStartDate.setDate(offset);
+    // const seasonStartDate = new Date();
+    // const [seasonName, year] = season.split(' ');
+    // seasonStartDate.setMonth(SEASON[seasonName]);
+    // seasonStartDate.setYear(parseInt(year));
+    // seasonStartDate.setDate(1);
+    // const offset = (13 - seasonStartDate.getDay())%7; // Date of the first Friday of the month
+    // seasonStartDate.setDate(offset);
 
-    console.log(seasonStartDate.getFullYear() + '-' + seasonStartDate.getMonth() + '-' + seasonStartDate.getDate());
+    // console.log(seasonStartDate.getFullYear() + '-' + seasonStartDate.getMonth() + '-' + seasonStartDate.getDate());
 
-    // Do the processing
+    // Do the processing for the season
     votingRows.forEach(async (row) => {
         let newAnime = false; // flag indicating we should add a new show
         let title = row[0];
@@ -115,17 +115,10 @@ async function main() {
             }
         }
 
-        // let index = row.length-1;
-        // while (index >= 1 && row[index] === 'BYE') {
-        //     index--;
-        // }
         let episode, votesFor, votesAgainst = 0;
         if (endIndex !== 0) {
             const lastCell = row[endIndex];
             ({episode, votesFor, votesAgainst} = parseVoteCell(lastCell));
-        } else {
-            // No vote records in this row, set ep and votes to 0?
-            // defaulted to it
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
@@ -133,12 +126,15 @@ async function main() {
             id: animeRecord.series_animedb_id,
             episode: episode,
         };
+        // const startDate = new Date(seasonStartDate.getTime());
+        // startDate.setDate(startDate.getDate() + (7 * startIndex-1));
+        // animePayload.date_start = formatMalDate(startDate);
         if (episode === animeRecord.series_episodes) {
             animePayload.status = STATUS.COMPLETED;
-            // Add weeks since the first Friday of the season
-            const endDate = new Date(seasonStartDate.getTime());
-            endDate.setDate(endDate.getDate() + (7 * index-1));
-            animePayload.date_finish = endDate;
+            // // Add weeks since the first Friday of the season
+            // const endDate = new Date(seasonStartDate.getTime());
+            // endDate.setDate(endDate.getDate() + (7 * endIndex-1));
+            // animePayload.date_finish = formatMalDate(endDate);
         } else if (votesFor < votesAgainst) {
             animePayload.status = STATUS.DROPPED;
         }
@@ -147,10 +143,56 @@ async function main() {
         }
 
         console.log(animePayload);
+        console.log(animeRecord);
+        try {
+            normalizeAnimePayload(animePayload, animeRecord);
+            console.log(animePayload);
 
-        // if (newAnime) await mal.addAnime(animePayload)
-        // else await mal.updateAnime(animePayload)
+            // if (newAnime) await mal.addAnime(animePayload)
+            // else await mal.updateAnime(animePayload)
+        }
+        catch (err) {
+            console.error(err);
+        }
     });
+}
+
+// function formatMalDate(date) {
+//     return date.getFullYear() + "-" + getMonth(date) + "-" + getDate(date);
+// }
+//
+// function getMonth(date) {
+//   var month = date.getMonth() + 1;
+//   return month < 10 ? '0' + month : '' + month; // ('' + month) for string result
+// }
+//
+// function getDate(date) {
+//   var date = date.getDate();
+//   return date < 10 ? '0' + date : '' + date; // ('' + month) for string result
+// }
+
+function normalizeAnimePayload(animePayload, animeRecord) {
+    if (animePayload.id !== animeRecord.series_animedb_id) {
+        throw new Error('Somehow payload and record have different anime ids. Skipping');
+    }
+    if (animePayload.episode === parseInt(animeRecord.my_watched_episodes)) {
+        delete animePayload.episode;
+    }
+    if (animePayload.status === parseInt(animeRecord.my_status)) {
+        delete animePayload.status;
+    }
+    if (animePayload.score === parseInt(animeRecord.my_score)) {
+        delete animePayload.score;
+    }
+    if (animePayload.date_start === animeRecord.my_start_date) {
+        delete animePayload.date_start;
+    }
+    if (animePayload.date_finish === animeRecord.my_finish_date) {
+        delete animePayload.date_finish;
+    }
+    if (animePayload.tags === animeRecord.my_tags) {
+        delete animePayload.tags;
+    }
 }
 
 /**
