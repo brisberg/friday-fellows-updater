@@ -84,6 +84,9 @@ async function main() {
 
     // console.log(seasonStartDate.getFullYear() + '-' + seasonStartDate.getMonth() + '-' + seasonStartDate.getDate());
 
+    // debug settings
+    const seasonStartDate = new Date(2014, 0, 10);
+
     // Do the processing for the season
     votingRows.forEach(async (row) => {
         let newAnime = false; // flag indicating we should add a new show
@@ -106,10 +109,10 @@ async function main() {
         }
 
         const episode1Index = row.findIndex((cell) => {
-            cell.startsWith('Ep. 1');
+            return cell.startsWith('Ep. 01');
         })
         const endIndex = row.length - 1;
-        for ( ; endIndex >= 0; endIndex--) {
+        for ( ; endIndex >= 1; endIndex--) {
             if (row[endIndex].startsWith('Ep. ')) {
                 break;
             }
@@ -128,16 +131,16 @@ async function main() {
         };
         if (episode1Index !== -1) {
             // Set the start date as the week we saw episode 1
-            // const startDate = new Date(seasonStartDate.getTime());
-            // startDate.setDate(startDate.getDate() + (7 * startIndex-1));
-            // animePayload.date_start = formatMalDate(startDate);
+            const startDate = new Date(seasonStartDate.getTime());
+            startDate.setDate(startDate.getDate() + (7 * (episode1Index-1)));
+            animePayload.date_start = formatMalDate(startDate);
         }
         if (episode === animeRecord.series_episodes) {
             animePayload.status = STATUS.COMPLETED;
-            // // Add weeks since the first Friday of the season
-            // const endDate = new Date(seasonStartDate.getTime());
-            // endDate.setDate(endDate.getDate() + (7 * endIndex-1));
-            // animePayload.date_finish = formatMalDate(endDate);
+            // Add weeks since the first Friday of the season
+            const endDate = new Date(seasonStartDate.getTime());
+            endDate.setDate(endDate.getDate() + (7 * (endIndex-1)));
+            animePayload.date_finish = formatMalDate(endDate);
         } else if (votesFor < votesAgainst) {
             animePayload.status = STATUS.DROPPED;
         }
@@ -162,19 +165,19 @@ async function main() {
     });
 }
 
-// function formatMalDate(date) {
-//     return date.getFullYear() + "-" + getMonth(date) + "-" + getDate(date);
-// }
-//
-// function getMonth(date) {
-//   var month = date.getMonth() + 1;
-//   return month < 10 ? '0' + month : '' + month; // ('' + month) for string result
-// }
-//
-// function getDate(date) {
-//   var date = date.getDate();
-//   return date < 10 ? '0' + date : '' + date; // ('' + month) for string result
-// }
+function formatMalDate(date) {
+    return date.getFullYear() + "-" + getMonth(date) + "-" + getDate(date);
+}
+
+function getMonth(date) {
+  var month = date.getMonth() + 1;
+  return month < 10 ? '0' + month : '' + month; // ('' + month) for string result
+}
+
+function getDate(date) {
+  var date = date.getDate();
+  return date < 10 ? '0' + date : '' + date; // ('' + month) for string result
+}
 
 function normalizeAnimePayload(animePayload, animeRecord) {
     if (animePayload.id !== animeRecord.series_animedb_id) {
