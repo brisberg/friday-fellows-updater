@@ -148,7 +148,8 @@ async function main() {
 
         console.log(animePayload);
 
-        //await mal.updateAnime(animePayload);
+        // if (newAnime) await mal.addAnime(animePayload)
+        // else await mal.updateAnime(animePayload)
     });
 }
 
