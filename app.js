@@ -111,7 +111,7 @@ async function main() {
         const episode1Index = row.findIndex((cell) => {
             return cell.startsWith('Ep. 01');
         })
-        const endIndex = row.length - 1;
+        let endIndex = row.length - 1;
         for ( ; endIndex >= 1; endIndex--) {
             if (row[endIndex].startsWith('Ep. ')) {
                 break;
@@ -125,6 +125,28 @@ async function main() {
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
+
+        // calculate real episode count past the date
+        const currentDate = new Date();
+        currentDate.setHours(0,0,0,0);
+        const lastEpisodeDate = new Date(seasonStartDate);
+        lastEpisodeDate.setDate(seasonStartDate.getDate() + (7 * (endIndex-1)));
+        if (votesFor >= votesAgainst && currentDate > lastEpisodeDate) {
+            // Assume voting ended and the show continued
+            const daysSince = daysBetween(lastEpisodeDate, currentDate);
+            console.log(daysSince);
+            console.log(Math.round(daysSince/7));
+            console.log(Math.min(15 - endIndex, Math.round(daysSince/7)));
+            let extraEpisodes = Math.min(15 - endIndex, Math.round(daysSince/7));
+            const overDraft = (episode + extraEpisodes) - animeRecord.series_episodes;
+            if (overDraft > 0) {
+                extraEpisodes -= overDraft;
+            }
+            episode += extraEpisodes;
+            endIndex += extraEpisodes;
+            console.log('actual episode: ' + episode);
+        }
+
         const animePayload = {
             id: animeRecord.series_animedb_id,
             episode: episode,
@@ -135,7 +157,7 @@ async function main() {
             startDate.setDate(startDate.getDate() + (7 * (episode1Index-1)));
             animePayload.date_start = formatMalDate(startDate);
         }
-        if (episode === animeRecord.series_episodes) {
+        if (episode === parseInt(animeRecord.series_episodes)) {
             animePayload.status = STATUS.COMPLETED;
             // Add weeks since the first Friday of the season
             const endDate = new Date(seasonStartDate.getTime());
@@ -164,6 +186,15 @@ async function main() {
         }
     });
 }
+
+function daysBetween(date1, date2) {
+    console.log(date1, date2);
+    var one_day=1000*60*60*24;
+    var date1_ms = date1.getTime();
+    var date2_ms = date2.getTime();
+    var difference_ms = date2_ms - date1_ms;
+    return Math.round(difference_ms/one_day);
+ }
 
 function formatMalDate(date) {
     return date.getFullYear() + "-" + getMonth(date) + "-" + getDate(date);
