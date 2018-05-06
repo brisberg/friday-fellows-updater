@@ -105,8 +105,8 @@ async function main() {
             return;
         }
 
-        const startIndex = row.findIndex((cell) => {
-            cell.startsWith('Ep. ');
+        const episode1Index = row.findIndex((cell) => {
+            cell.startsWith('Ep. 1');
         })
         const endIndex = row.length - 1;
         for ( ; endIndex >= 0; endIndex--) {
@@ -126,9 +126,12 @@ async function main() {
             id: animeRecord.series_animedb_id,
             episode: episode,
         };
-        // const startDate = new Date(seasonStartDate.getTime());
-        // startDate.setDate(startDate.getDate() + (7 * startIndex-1));
-        // animePayload.date_start = formatMalDate(startDate);
+        if (episode1Index !== -1) {
+            // Set the start date as the week we saw episode 1
+            // const startDate = new Date(seasonStartDate.getTime());
+            // startDate.setDate(startDate.getDate() + (7 * startIndex-1));
+            // animePayload.date_start = formatMalDate(startDate);
+        }
         if (episode === animeRecord.series_episodes) {
             animePayload.status = STATUS.COMPLETED;
             // // Add weeks since the first Friday of the season
