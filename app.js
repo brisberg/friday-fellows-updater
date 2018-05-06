@@ -141,6 +141,9 @@ async function main() {
         } else if (votesFor < votesAgainst) {
             animePayload.status = STATUS.DROPPED;
         }
+        if (title.includes("Teekyuu")) {
+            animePayload.score = 10;
+        }
         if (!animeRecord.my_tags.includes(seasonTag)) {
             animePayload.tags = seasonTag + ', ' + animeRecord.my_tags;
         }
