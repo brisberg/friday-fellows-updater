@@ -148,8 +148,10 @@ async function main() {
             normalizeAnimePayload(animePayload, animeRecord);
             console.log(animePayload);
 
-            // if (newAnime) await mal.addAnime(animePayload)
-            // else await mal.updateAnime(animePayload)
+            if (Object.keys(animePayload).length > 1) {
+                // if (newAnime) await mal.addAnime(animePayload)
+                // else await mal.updateAnime(animePayload)
+            }
         }
         catch (err) {
             console.error(err);
