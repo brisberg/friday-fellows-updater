@@ -74,11 +74,6 @@ async function main() {
     console.log('List length: ' + animeList.length);
     console.log('Voting results for ' + votingRows.length + ' series');
 
-    // mal.updateAnime({
-    //     id: 32979,
-    //     episode: 4,
-    // }).then((res) => console.log(res));
-
     const seasonStartDate = new Date();
     const [seasonName, year] = season.split(' ');
     seasonStartDate.setMonth(SEASON[seasonName]);
@@ -89,31 +84,48 @@ async function main() {
 
     console.log(seasonStartDate.getFullYear() + '-' + seasonStartDate.getMonth() + '-' + seasonStartDate.getDate());
 
-
     // Do the processing
-    votingRows.forEach((row) => {
+    votingRows.forEach(async (row) => {
+        let newAnime = false; // flag indicating we should add a new show
         let title = row[0];
-        const animeRecord = animeList.find(record => record.series_title === title);
+        let animeRecord = animeList.find(record => record.series_title === title);
 
         if (!animeRecord) {
-            console.log('No record found for ' + title);
             // Add a new show
             // Search for the title
+            try {
                 // If found, add the new show with the specified episode count
+                animeRecord = await map.searchSingleAnime(title);
+                newAnime = true;
+            }
+            catch (err) {
                 // If not found, log an error
+                console.log('No record or MAL listing found for ' + title);
+            }
             return;
         }
 
-        let index = row.length-1;
-        while (index >= 1 && row[index] === 'BYE') {
-            index--;
+        const startIndex = row.findIndex((cell) => {
+            cell.startsWith('Ep. ');
+        })
+        const endIndex = row.length - 1;
+        for ( ; endIndex >= 0; endIndex--) {
+            if (row[endIndex].startsWith('Ep. ')) {
+                break;
+            }
         }
+
+        // let index = row.length-1;
+        // while (index >= 1 && row[index] === 'BYE') {
+        //     index--;
+        // }
         let episode, votesFor, votesAgainst = 0;
-        if (index !== 0) {
-            const lastCell = row[index];
+        if (endIndex !== 0) {
+            const lastCell = row[endIndex];
             ({episode, votesFor, votesAgainst} = parseVoteCell(lastCell));
         } else {
             // No vote records in this row, set ep and votes to 0?
+            // defaulted to it
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
@@ -142,7 +154,7 @@ async function main() {
 
 /**
  * Parses a string of the form "Ep. <epNum>: <votesFor> to <votesAgainst>" into
- * its variable values.
+ * its variable parts.
  */
 function parseVoteCell(value) {
     const parts = value.split(' ');
