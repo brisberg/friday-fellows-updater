@@ -8,17 +8,17 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 import {initializeGoogleClient} from './google.auth.js';
 
 import * as Chinmei from 'chinmei';
-import {AnimeModel} from 'chinmei';
+import {AnimeModel, GetMalUserResponse, MalAnimeRecord} from '../types/chinmei';
 import {AxiosResponse} from 'axios';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
-const STATUS = {
-  WATCHING: 1,
-  COMPLETED: 2,
-  ONHOLD: 3,
-  DROPPED: 4,
-  PLANTOWATCH: 6,
-};
+enum STATUS {
+  WATCHING = 1,
+  COMPLETED = 2,
+  ONHOLD = 3,
+  DROPPED = 4,
+  PLANTOWATCH = 6,
+}
 
 // Mapping of season name to starting month (Jan, Api, Jul, Oct).
 // const SEASON = {
@@ -35,12 +35,7 @@ async function main() {
   let sheets; // Api Clients
   let mal;
   const season = 'WINTER 2014';
-  const seasonTag = season.toLowerCase()
-                        .split(' ')
-                        .map(function(word) {
-                          return (word.charAt(0).toUpperCase() + word.slice(1));
-                        })
-                        .join(' ');
+  const seasonTag = generateSeasonTag(season);
 
   try {
     sheets = await initializeGoogleClient(SCOPES);
@@ -53,7 +48,7 @@ async function main() {
   console.log('Accessing MAL for user FridayFellows');
   const listFetchP =
       mal.getMalUser('FridayFellows', 1, 'all')
-          .then((res) => {
+          .then((res: GetMalUserResponse) => {
             console.log(
                 'Fetched AnimeList, ' + res.anime.length + ' series found.');
             return res.anime;
@@ -113,8 +108,8 @@ async function main() {
   votingRows.forEach(async (row) => {
     // let newAnime = false; // flag indicating we should add a new show
     let title = row[0];
-    let animeRecord =
-        animeList.find((record: AnimeModel) => record.series_title === title);
+    let animeRecord = animeList.find(
+        (record: MalAnimeRecord) => record.series_title === title);
 
     if (!animeRecord) {
       // Add a new show
@@ -240,10 +235,23 @@ function daysBetween(start, end) {
 }
 
 /**
+ * @param {string} season Season name to parse ex. 'WINTER 2014'
+ * @return {string} Parsed season tag, ex. 'Winter 2014'
+ */
+function generateSeasonTag(season: string): string {
+  return season.toLowerCase()
+      .split(' ')
+      .map(function(word) {
+        return (word.charAt(0).toUpperCase() + word.slice(1));
+      })
+      .join(' ');
+}
+
+/**
  * @param {Date} date
  * @return {string} Date formatted as '2018-05-10'
  */
-function formatMalDate(date) {
+function formatMalDate(date: Date) {
   return date.getFullYear() + '-' + getMonth(date) + '-' + getDate(date);
 }
 
@@ -251,7 +259,7 @@ function formatMalDate(date) {
  * @param {Date} date
  * @return {string} Month formatted as a numerical string
  */
-function getMonth(date) {
+function getMonth(date: Date) {
   const month = date.getMonth() + 1;
   return month < 10 ? '0' + month :
                       '' + month; // ('' + month) for string result
@@ -261,7 +269,7 @@ function getMonth(date) {
  * @param {Date} date
  * @return {string} Day of the month formatted as a string
  */
-function getDate(date) {
+function getDate(date: Date) {
   const day = date.getDate();
   return day < 10 ? '0' + day : '' + day; // ('' + day) for string result
 }
@@ -270,9 +278,10 @@ function getDate(date) {
 /**
  *  Removes field from the payload which are already recorded in the record.
  *  @param {AnimeModel} animePayload Model to be deduped.
- *  @param {AnimeRecord} animeRecord Record from Mal to compare against.
+ *  @param {MalAnimeRecord} animeRecord Record from Mal to compare against.
  */
-function normalizeAnimePayload(animePayload, animeRecord) {
+function normalizeAnimePayload(
+    animePayload: AnimeModel, animeRecord: MalAnimeRecord) {
   if (animePayload.id !== animeRecord.series_animedb_id) {
     throw new Error(
         'Somehow payload and record have different anime ids. Skipping');
@@ -310,7 +319,7 @@ function normalizeAnimePayload(animePayload, animeRecord) {
  * @return {{number, number, number}} Wrapper for episodes, votesFor and
  * VotesAgainst.
  */
-function parseVoteCell(value) {
+function parseVoteCell(value: string) {
   const parts = value.split(' ');
   const episode = parseInt(parts[1].slice(0, -1));
   const votesFor = parseInt(parts[2]);
@@ -330,7 +339,7 @@ try {
  * @param {string} credPath path to Mal Credentials file.
  * @return {Chinmei} Authenticated Chinmei API Client
  */
-function initializeChinmeiClient(credPath) {
+function initializeChinmeiClient(credPath: string): Chinmei {
   return new Promise(async (resolve, reject) => {
     // Load mal credentials from a local file.
     fs.readFile(credPath, async (err, content) => {
@@ -358,7 +367,7 @@ function initializeChinmeiClient(credPath) {
  * @param {Object} params parameters to pass to the wrapped function.
  * @return {Promise} promise wrapping the function
  */
-function promisify(fn, params) {
+function promisify(fn: Function, params: any) {
   return new Promise((resolve, reject) => {
     fn(params, (err, res) => {
       if (err) reject(err);
