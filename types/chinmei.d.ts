@@ -4,7 +4,7 @@ export declare class Chinmei {
   costructor(username: string, password: string);
 
   verifyAuth(): Promise<Response>;
-  getMalUser(username: string, animeOrManga: number, filter: string):
+  getMalUser(username: string, mangaOrAnime: number, filter: string):
       GetMalUserResponse;
   addAnime(payload: AnimeModel): {};
   updateAnime(payload: AnimeModel): {};
