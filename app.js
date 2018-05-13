@@ -41,6 +41,7 @@ async function main() {
         console.log('Initialization error: ' + err);
         process.exit(1);
     }
+
     console.log('Accessing MAL for user FridayFellows');
     const listFetchP = mal.getMalUser('FridayFellows', 1, 'all').then(res => {
         console.log('Fetched AnimeList, ' + res.anime.length + ' series found.')
@@ -86,6 +87,11 @@ async function main() {
 
     // debug settings
     const seasonStartDate = new Date(2014, 0, 10);
+    const daysInASeason = 7 * 13; // thirteen weeks in a season
+
+    const seasonFinished = daysBetween(seasonStartDate, new Date()) > (7 * 13);
+    const seasonEndDate = new Date(seasonStartDate);
+    seasonEndDate.setDate(seasonStartDate.getDate() + daysInASeason);
 
     // Do the processing for the season
     votingRows.forEach(async (row) => {
@@ -108,6 +114,12 @@ async function main() {
             return;
         }
 
+        const cours = Math.round(animeRecord.series_episodes / 13);
+        if (cours > 1) {
+            console.log(title + ' is a multi-cour series, skipping...');
+            return;
+        }
+
         const episode1Index = row.findIndex((cell) => {
             return cell.startsWith('Ep. 01');
         })
@@ -125,32 +137,42 @@ async function main() {
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
-
-        // calculate real episode count past the date
-        const currentDate = new Date();
-        currentDate.setHours(0,0,0,0);
-        const lastEpisodeDate = new Date(seasonStartDate);
-        lastEpisodeDate.setDate(seasonStartDate.getDate() + (7 * (endIndex-1)));
-        if (votesFor >= votesAgainst && currentDate > lastEpisodeDate) {
-            // Assume voting ended and the show continued
-            const daysSince = daysBetween(lastEpisodeDate, currentDate);
-            console.log(daysSince);
-            console.log(Math.round(daysSince/7));
-            console.log(Math.min(15 - endIndex, Math.round(daysSince/7)));
-            let extraEpisodes = Math.min(15 - endIndex, Math.round(daysSince/7));
-            const overDraft = (episode + extraEpisodes) - animeRecord.series_episodes;
-            if (overDraft > 0) {
-                extraEpisodes -= overDraft;
-            }
-            episode += extraEpisodes;
-            endIndex += extraEpisodes;
-            console.log('actual episode: ' + episode);
-        }
-
         const animePayload = {
             id: animeRecord.series_animedb_id,
             episode: episode,
         };
+
+        const currentDate = new Date();
+        currentDate.setHours(0,0,0,0);
+        const lastEpisodeDate = new Date(seasonStartDate);
+        lastEpisodeDate.setDate(seasonStartDate.getDate() + (7 * (endIndex-1)));
+
+        if (votesFor >= votesAgainst) {
+            if (seasonFinished) {
+                // Season is finished so update to end
+                episode = animeRecord.series_episodes;
+                animePayload.date_finish = formatMalDate(seasonEndDate);
+            } else if (currentDate > lastEpisodeDate) {
+                // Assume voting ended and the show continued
+
+                // calculate real episode count past the date
+                const daysSince = daysBetween(lastEpisodeDate, currentDate);
+                // console.log(daysSince);
+                // console.log(Math.round(daysSince/7));
+                // console.log(Math.min(15 - endIndex, Math.round(daysSince/7)));
+                let extraEpisodes = Math.round(daysSince/7);
+                // const overDraft = (episode + extraEpisodes) - animeRecord.series_episodes;
+                // if (overDraft > 0) {
+                //     extraEpisodes -= overDraft;
+                // }
+                episode += extraEpisodes;
+                endIndex += extraEpisodes;
+                console.log('actual episode: ' + episode);
+            }
+        } else {
+            animePayload.status = STATUS.DROPPED;
+        }
+
         if (episode1Index !== -1) {
             // Set the start date as the week we saw episode 1
             const startDate = new Date(seasonStartDate.getTime());
@@ -163,8 +185,6 @@ async function main() {
             const endDate = new Date(seasonStartDate.getTime());
             endDate.setDate(endDate.getDate() + (7 * (endIndex-1)));
             animePayload.date_finish = formatMalDate(endDate);
-        } else if (votesFor < votesAgainst) {
-            animePayload.status = STATUS.DROPPED;
         }
         if (!animeRecord.my_tags.includes(seasonTag)) {
             animePayload.tags = seasonTag + ', ' + animeRecord.my_tags;
