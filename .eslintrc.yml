@@ -1,0 +1,14 @@
+extends:
+    - "eslint:recommended"
+    - "google"
+# rules:
+    # Additional, per-project rules...
+env:
+    node: true
+    mocha: true
+    es6: true
+parser: typescript-eslint-parser
+parserOptions:
+    sourceType: module
+    ecmaFeatures:
+        modules: true

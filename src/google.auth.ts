@@ -5,7 +5,7 @@ const OAuth2Client = google.auth.OAuth2;
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 const TOKEN_PATH = 'credentials.json';
 
-exports.initializeGoogleClient = function(SCOPES) {
+ export function initializeGoogleClient(SCOPES) {
     return new Promise((resolve, reject) => {
         // Load client secrets from a local file.
         fs.readFile('client_secret.json', (err, content) => {

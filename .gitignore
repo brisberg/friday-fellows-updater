@@ -13,6 +13,9 @@ client_secret.json
 credentials.json
 mal_credentials.json
 
+# built files
+dist/
+
 # Runtime data
 pids
 *.pid

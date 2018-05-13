@@ -1,15 +1,16 @@
-const fs = require('fs');
-const readline = require('readline');
-const {google} = require('googleapis');
+import * as fs from 'fs';
+import {AxiosResponse} from 'axios';
+import * as readline from 'readline';
+import {google} from 'googleapis';
 const OAuth2Client = google.auth.OAuth2;
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
-const TOKEN_PATH = 'credentials.json';
+const TOKEN_PATH = '../credentials.json';
 
 // Load client secrets from a local file.
-fs.readFile('client_secret.json', (err, content) => {
+fs.readFile('../client_secret.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Google Drive API.
-  authorize(JSON.parse(content), loadingVotingSheet);
+  authorize(JSON.parse(content.toString()), loadingVotingSheet);
 });
 
 /**
@@ -25,7 +26,7 @@ function authorize(credentials, callback) {
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, (err, token) => {
     if (err) return getAccessToken(oAuth2Client, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));
+    oAuth2Client.setCredentials(JSON.parse(token.toString()));
     callback(oAuth2Client);
   });
 }
@@ -103,7 +104,7 @@ function promisifiy(fn, params) {
          spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
          majorDimension: 'COLUMNS',
          range: 'A2:B25',
-    }).then(res => {
+    }).then((res: AxiosResponse) => {
          const rows = res.data.values;
          if (rows.length === 0) {
            console.log('No data found.');

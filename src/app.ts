@@ -3,21 +3,23 @@
 // const hostname = '127.0.0.1';
 // const port = 3000;
 
-const fs = require('fs');
-const readline = require('readline');
+import * as fs from 'fs';
+import * as readline from 'readline';
+import {AxiosResponse} from 'axios';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
-const {initializeGoogleClient} = require('./google.auth.js');
+import {initializeGoogleClient} from './google.auth.js';
 
-const Chinmei = require('chinmei');
+import * as Chinmei from 'chinmei';
+import {AnimeModel} from 'chinmei';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
-const STATUS = {
+let STATUS = {
     WATCHING: 1,
     COMPLETED: 2,
     ONHOLD: 3,
     DROPPED: 4,
     PLANTOWATCH: 6,
-};
+}
 
 // Mapping of season name to starting month (Jan, Api, Jul, Oct).
 // const SEASON = {
@@ -54,7 +56,7 @@ async function main() {
         spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
         majorDimension: 'ROWS',
         range: '\'' + season + '\'!A2:K30',
-    }).then(res => {
+    }).then((res: AxiosResponse) => {
         const rows = res.data.values;
         if (rows.length === 0) {
             console.log('No data found in sheet');
@@ -64,7 +66,7 @@ async function main() {
         }
     }).catch(e => {
         console.error('GoogleSheets API returned an error.')
-        throw err;
+        throw e;
     });
 
     let [animeList, votingRows] = await Promise.all([
@@ -104,7 +106,7 @@ async function main() {
             // Search for the title
             try {
                 // If found, add the new show with the specified episode count
-                animeRecord = await map.searchSingleAnime(title);
+                animeRecord = await mal.searchSingleAnime(title);
                 newAnime = true;
             }
             catch (err) {
@@ -137,7 +139,7 @@ async function main() {
         }
 
         console.log(title + " Ep. " + episode + " " + votesFor + "-" + votesAgainst);
-        const animePayload = {
+        const animePayload: AnimeModel = {
             id: animeRecord.series_animedb_id,
             episode: episode,
         };
@@ -273,6 +275,11 @@ catch (err) {
     console.log(err);
 }
 
+interface MalCredentials {
+    username: string;
+    password: string;
+}
+
 function initializeChinmeiClient(cred_path) {
     return new Promise(async (resolve, reject) => {
         // Load mal credentials from a local file.
@@ -282,7 +289,7 @@ function initializeChinmeiClient(cred_path) {
                 reject(err);
             }
             // Authorize a client with credentials, then verify with MAL api.
-            const {username, password} = JSON.parse(content);
+            const {username, password} = JSON.parse(content.toString());
 
             try {
                 const mal = new Chinmei(username, password);
