@@ -5,9 +5,9 @@ export declare class Chinmei {
 
   verifyAuth(): Promise<Response>;
   getMalUser(username: string, mangaOrAnime: number, filter: string):
-      GetMalUserResponse;
-  addAnime(payload: AnimeModel): {};
-  updateAnime(payload: AnimeModel): {};
+      Promise<GetMalUserResponse>;
+  addAnime(payload: AnimeModel): Promise<Response>;
+  updateAnime(payload: AnimeModel): Promise<Response>;
 }
 
 export interface UserModel {

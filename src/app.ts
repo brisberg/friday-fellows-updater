@@ -306,20 +306,20 @@ function normalizeAnimePayload(
   }
 }
 
-// export interface ParsedCellStruct {
-//     episode: number;
-//     votesFor: number;
-//     votesAgainst: number;
-// }
+export interface ParsedCellInfo {
+  episode: number;
+  votesFor: number;
+  votesAgainst: number;
+}
 
 /**
- * @param {String} value string of the form "Ep. <epNum>: <votesFor> to
+ * @param {string} value string of the form "Ep. <epNum>: <votesFor> to
  * <votesAgainst>" to parse into
  * its variable parts.
- * @return {{number, number, number}} Wrapper for episodes, votesFor and
+ * @return {ParsedCellInfo} Wrapper for episodes, votesFor and
  * VotesAgainst.
  */
-function parseVoteCell(value: string) {
+function parseVoteCell(value: string): ParsedCellInfo {
   const parts = value.split(' ');
   const episode = parseInt(parts[1].slice(0, -1));
   const votesFor = parseInt(parts[2]);
