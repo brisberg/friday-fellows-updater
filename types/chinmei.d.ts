@@ -6,6 +6,7 @@ export declare class Chinmei {
   verifyAuth(): Promise<Response>;
   getMalUser(username: string, mangaOrAnime: number, filter: string):
       Promise<GetMalUserResponse>;
+  searchSingleAnime(title: string): Promise<MalAnimeModel>;
   addAnime(payload: AnimeModel): Promise<Response>;
   updateAnime(payload: AnimeModel): Promise<Response>;
 }
@@ -65,7 +66,7 @@ export interface MalUserInfo {
   user_days_spent_watching: number;
 }
 
-export interface MalAnimeRecord {
+export interface MalMyAnimeRecord {
   series_animedb_id: number;
   series_title: string;
   series_synonyms: string;
@@ -83,4 +84,18 @@ export interface MalAnimeRecord {
   my_rewatching_ep: number;
   my_last_updated: number;
   my_tags: string;
+}
+
+export interface MalAnimeModel {
+  id: string;
+  title: string;
+  english: string;
+  synonyms: string;
+  episodes: number;
+  score: string;
+  type: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  image: string;
 }

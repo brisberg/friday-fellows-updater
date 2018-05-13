@@ -1,0 +1,85 @@
+## Processing Pseudocode
+
+Fetch Mal Records, and the Sheets metadata
+
+convert MalRecords into a map keyed by title;
+
+const results = Map<series_id, AnimeModel>
+const ongoing = Map<series_id, AnimeModel>
+
+For each sheet in reverse order (starting from oldest) {
+    const SeasonName and SeasonStartDate
+
+    For each row in the sheet {
+        const rowTitle, rowEp1, rowLastVote
+        const result = newAnimeModel(rowTitle)
+
+        const record = getMalRecord(rowTitle);
+
+        // At this point, we know we have a valid record
+        if (rowEp1) {
+            Set result.startDate to (seasonStartDate + 7 * rowEp1.WeekIndex)
+            set result.status to WATCHING
+        }
+        if (rowLastVote failed to win) {
+            // Anime lost, so this was the last episode we saw
+            set result.status to DROPPED
+            set result.episodes = rowLastVote.episode
+        } else {
+            if (season is ended) {
+                // Season is over, and the anime survived
+                if (ongoing[record.id]) {
+                   // This is an ongoing series
+                   if (ongoing[record.id].episodes + 13 > record.max_episodes) {
+                        // Series is finished
+                        result.episodes = record.max_episodes;
+                        const endDate = seasonStartDate + (7 * (rowLastVote.index + (record.max_episodes - rowLastVote.episode)))
+                        result.status = COMPLETED
+                   } else {
+                        result.episodes = results[record.id].episodes + 13
+                        ongoing[record.id] = result
+                   }
+                } else {
+                    // Series is finished
+                    result.episodes = record.max_episodes;
+                    const endDate = seasonStartDate + (7 * (rowLastVote.index + (record.max_episodes - rowLastVote.episode)))
+                    result.status = COMPLETED
+                }
+            } else {
+                // This is the current season
+                // current season and show is continuing
+                if (row[row.length] === 'BYE') {
+                    // last records are BYE weeks, so use the last known vote
+                    set result.episode = rowLastVote.episode
+                    set result.status to WATCHING
+                } else {
+                    // last record is a successful vote.
+                    const weeksOfSeason = daysBetween(SeasonStartDate, new Date()) // maybe add a day to give time for update?
+                    result.episode = rowLastVote.episode + (weeksOfSeason - rowLastVote.index)
+                    if (result.episode >= record.maxEpisodes) {
+                        result.episode = record.maxEpisodes
+                        result.status = COMPLETED
+                    } else {
+                        result.statue to WATCHING
+                    }
+                }
+            }
+        }
+    }
+}
+
+function getMalRecord(title) {
+    if (MalRecords.contains(rowTitle)) {
+        const record = MalRecords[rowTitle];
+    } else {
+        const response = Mal.getSingleAnime(rowTitle);
+        if (response) {
+            Use this as the record. (convert MalAnimeModel to MalMyAnimeRecord)
+            * NEW ANIME *
+        } else {
+            // Could not find a match for the row
+            Add rowTitle to the "Error rows list"
+            continue;
+        }
+    }
+}

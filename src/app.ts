@@ -146,7 +146,7 @@ async function main() {
     let votesAgainst = 0;
     if (endIndex !== 0) {
       const lastCell = row[endIndex];
-      ({episode, votesFor, votesAgainst} = parseVoteCell(lastCell));
+      ({episode, votesFor, votesAgainst} = parseVoteCell(endIndex, lastCell));
     }
 
     console.log(
@@ -307,24 +307,26 @@ function normalizeAnimePayload(
 }
 
 export interface ParsedCellInfo {
+  weekIndex: number;
   episode: number;
   votesFor: number;
   votesAgainst: number;
 }
 
 /**
+ * @param {number} index column index of this cell
  * @param {string} value string of the form "Ep. <epNum>: <votesFor> to
  * <votesAgainst>" to parse into
  * its variable parts.
  * @return {ParsedCellInfo} Wrapper for episodes, votesFor and
  * VotesAgainst.
  */
-function parseVoteCell(value: string): ParsedCellInfo {
+function parseVoteCell(index: number, value: string): ParsedCellInfo {
   const parts = value.split(' ');
   const episode = parseInt(parts[1].slice(0, -1));
   const votesFor = parseInt(parts[2]);
   const votesAgainst = parseInt(parts[4]);
-  return {episode, votesFor, votesAgainst};
+  return {weekIndex: index, episode, votesFor, votesAgainst};
 }
 
 // Main call
