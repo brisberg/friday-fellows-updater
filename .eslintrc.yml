@@ -1,7 +1,8 @@
 extends:
     - "eslint:recommended"
     - "google"
-# rules:
+rules:
+    no-console: 0
     # Additional, per-project rules...
 env:
     node: true
