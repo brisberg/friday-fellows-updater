@@ -3,6 +3,7 @@ extends:
     - "google"
 rules:
     no-console: 0
+    typescript/no-unused-vars: 1
     # Additional, per-project rules...
 env:
     node: true
@@ -13,3 +14,5 @@ parserOptions:
     sourceType: module
     ecmaFeatures:
         modules: true
+plugins:
+    - "typescript"
