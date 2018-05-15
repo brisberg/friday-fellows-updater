@@ -81,6 +81,11 @@ async function main() {
     listFetchP,
     sheetsFetchP,
   ]);
+  const malRecords = new Map<string, MalMyAnimeRecord>();
+  const ongoing = new Map<string, AnimeModel>();
+  animeList.forEach((record: MalMyAnimeRecord) => {
+    malRecords.put(record.title, record);
+  });
   console.log('Got all the results');
   console.log('List length: ' + animeList.length);
   console.log('Voting results for ' + votingRows.length + ' series');
@@ -108,109 +113,108 @@ async function main() {
   votingRows.forEach(async (row) => {
     // let newAnime = false; // flag indicating we should add a new show
     let title = row[0];
-    let animeRecord = animeList.find(
-        (record: MalAnimeRecord) => record.series_title === title);
+    const record: MalMyAnimeRecord = getMalRecord(title);
+    const result: AnimeModel = {id: record.series_animedb_id};
+    let rowLastVote: ParsedCellInfo;
 
-    if (!animeRecord) {
-      // Add a new show
-      // Search for the title
-      try {
-        // If found, add the new show with the specified episode count
-        animeRecord = await mal.searchSingleAnime(title);
-        // newAnime = true;
-      } catch (err) {
-        // If not found, log an error
-        console.log('No record or MAL listing found for ' + title);
-      }
-      return;
+    // const cours = Math.round(animeRecord.series_episodes / 13);
+    // if (cours > 1) {
+    //   console.log(title + ' is a multi-cour series, skipping...');
+    //   return;
+    // }
+
+    if (!record.my_tags.includes(seasonTag)) {
+      result.tags = seasonTag + ', ' + record.my_tags;
     }
 
-    const cours = Math.round(animeRecord.series_episodes / 13);
-    if (cours > 1) {
-      console.log(title + ' is a multi-cour series, skipping...');
-      return;
-    }
-
-    const episode1Index = row.findIndex((cell) => {
+    const episode1Index = row.find((cell) => {
       return cell.startsWith('Ep. 01');
     });
+    if (episode1Index !== -1) {
+      // Set the start date as the week we saw episode 1
+      const startDate = new Date(seasonStartDate.getTime());
+      startDate.setDate(startDate.getDate() + (7 * (episode1Index - 1)));
+      result.date_start = formatMalDate(startDate);
+      result.status = STATUS.WATCHING;
+    }
+
     let endIndex = row.length - 1;
     for (; endIndex >= 1; endIndex--) {
       if (row[endIndex].startsWith('Ep. ')) {
         break;
       }
     }
-
-    let episode = 0;
-    let votesFor = 0;
-    let votesAgainst = 0;
-    if (endIndex !== 0) {
-      const lastCell = row[endIndex];
-      ({episode, votesFor, votesAgainst} = parseVoteCell(endIndex, lastCell));
-    }
+    // TODO: do a try here to catch poorly formatted cells?
+    rowLastVote = parseVoteCell(endIndex, row[endIndex]);
 
     console.log(
-        title + ' Ep. ' + episode + ' ' + votesFor + '-' + votesAgainst);
-    const animePayload: AnimeModel = {
-      id: animeRecord.series_animedb_id,
-      episode: episode,
-    };
+        title + ' Ep. ' + rowLastVote.episode + ' ' + rowLastVote.votesFor +
+        '-' + rowLastVote.votesAgainst);
 
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-    const lastEpisodeDate = new Date(seasonStartDate);
-    lastEpisodeDate.setDate(seasonStartDate.getDate() + (7 * (endIndex - 1)));
-
-    if (votesFor >= votesAgainst) {
-      if (seasonFinished) {
-        // Season is finished so update to end
-        episode = animeRecord.series_episodes;
-        animePayload.date_finish = formatMalDate(seasonEndDate);
-      } else if (currentDate > lastEpisodeDate) {
-        // Assume voting ended and the show continued
-
-        // calculate real episode count past the date
-        const daysSince = daysBetween(lastEpisodeDate, currentDate);
-        // console.log(daysSince);
-        // console.log(Math.round(daysSince/7));
-        // console.log(Math.min(15 - endIndex, Math.round(daysSince/7)));
-        let extraEpisodes = Math.round(daysSince / 7);
-        // const overDraft = (episode + extraEpisodes) -
-        // animeRecord.series_episodes; if (overDraft > 0) {
-        //     extraEpisodes -= overDraft;
-        // }
-        episode += extraEpisodes;
-        endIndex += extraEpisodes;
-        console.log('actual episode: ' + episode);
-      }
+    if (rowLastVote.votesFor < rowLastVote.votesAgainst) {
+      // Anime lost, so this was the last episode we saw
+      result.status = SATUS.DROPPED;
+      result.episode = rowLastVote.episode;
     } else {
-      animePayload.status = STATUS.DROPPED;
+      // Show passed
+      if (seasonFinished) {
+        // Season is over, and the anime survived
+        if (ongoing.get(record.id)) {
+          // Series was on going
+          if (ongoing.get(record.id).episodes + 13 > record.series_episodes) {
+            // Series is finished
+            result.episodes = record.max_episodes;
+            const endDate = seasonStartDate +
+                (7 *
+                 (rowLastVote.index +
+                  (record.max_episodes - rowLastVote.episode)));
+            result.date_finish = formatMalDate(endDate);
+            result.status = STATUS.COMPLETED;
+          } else {
+            result.episodes = ongoing.get(record.id).episodes + 13;
+            ongoing[record.id] = result;
+          }
+        } else {
+          // First time we have seen this series, series is ended
+          result.episode = record.series_episodes;
+          const endDate = seasonStartDate +
+              (7 *
+               (rowLastVote.weekIndex +
+                (record.series_episodes - rowLastVote.episode)));
+          result.date_finish = formatMalDate(endDate);
+          result.status = STATUS.COMPLETED;
+        }
+      } else {
+        // This is the current season
+        // current season and show is continuing
+        if (row[row.length - 1] === 'BYE') {
+          // last records are BYE weeks, so use the last known vote
+          result.episode = rowLastVote.episode;
+          result.status = STATUS.WATCHING;
+        } else {
+          // last record is a successful vote.
+          const weeksOfSeason: number = daysBetween(
+              seasonStartDate,
+              new Date()); // maybe add a day to give time for update?
+          result.episode =
+              rowLastVote.episode + (weeksOfSeason - rowLastVote.weekIndex);
+          if (result.episode >= record.series_episodes) {
+            result.episode = record.series_episodes;
+            result.status = STATUS.COMPLETED;
+          } else {
+            result.status = STATUS.WATCHING;
+          }
+        }
+      }
     }
 
-    if (episode1Index !== -1) {
-      // Set the start date as the week we saw episode 1
-      const startDate = new Date(seasonStartDate.getTime());
-      startDate.setDate(startDate.getDate() + (7 * (episode1Index - 1)));
-      animePayload.date_start = formatMalDate(startDate);
-    }
-    if (episode === parseInt(animeRecord.series_episodes)) {
-      animePayload.status = STATUS.COMPLETED;
-      // Add weeks since the first Friday of the season
-      const endDate = new Date(seasonStartDate.getTime());
-      endDate.setDate(endDate.getDate() + (7 * (endIndex - 1)));
-      animePayload.date_finish = formatMalDate(endDate);
-    }
-    if (!animeRecord.my_tags.includes(seasonTag)) {
-      animePayload.tags = seasonTag + ', ' + animeRecord.my_tags;
-    }
-
-    console.log(animePayload);
-    console.log(animeRecord);
+    console.log(result);
+    console.log(record);
     try {
-      normalizeAnimePayload(animePayload, animeRecord);
-      console.log(animePayload);
+      normalizeAnimePayload(result, record);
+      console.log(result);
 
-      if (Object.keys(animePayload).length > 1) {
+      if (Object.keys(result).length > 1) {
         // if (newAnime) await mal.addAnime(animePayload)
         // else await mal.updateAnime(animePayload)
       }
@@ -232,6 +236,28 @@ function daysBetween(start, end) {
   const endMs = end.getTime();
   const differenceMs = endMs - startMs;
   return Math.round(differenceMs / oneDay);
+}
+
+/**
+ * @param {string} title Title of anime to search for
+ * @return {MalMyAnimeRecord} Found record or undefined
+ */
+function getMalRecord(title: string): MalMyAnimeRecord|undefined {
+  if (malRecords.contains(title)) {
+    return malRecords.get(title);
+  } else {
+    try {
+      // If found, add the new show with the specified episode count
+      return await mal.searchSingleAnime(title);
+      // TODO: convert to MalMyAnimeRecord
+      // newAnime = true;
+    } catch (err) {
+      // If not found, log an error
+      console.log('No record or MAL listing found for ' + title);
+      // TODO: Log missing to missing list
+    }
+  }
+  return;
 }
 
 /**
