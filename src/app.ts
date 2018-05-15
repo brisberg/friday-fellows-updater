@@ -64,7 +64,7 @@ async function main() {
           });
   const sheetsFetchP =
       promisify(sheets.spreadsheets.values.get, {
-        spreadsheetId: '1HN0dYPEet-Zkx_9AQGCKDZGU8ygNmpymLT3y6szp0UY',
+        spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
         majorDimension: 'ROWS',
         range: '\'' + season + '\'!A2:K30',
       })
@@ -159,8 +159,8 @@ async function main() {
               endDate.setDate(
                   endDate.getDate() +
                   (7 *
-                   (rowLastVote.weekIndex +
-                    (parseInt(record.series_episodes) - rowLastVote.episode))));
+                   (parseInt(record.series_episodes) -
+                    ongoing.get(record.series_animedb_id).episode)));
               result.date_finish = formatMalDate(endDate);
               result.status = STATUS.COMPLETED;
             } else {
@@ -174,9 +174,7 @@ async function main() {
             const endDate = new Date(seasonStartDate.getTime());
             endDate.setDate(
                 endDate.getDate() +
-                (7 *
-                 (rowLastVote.weekIndex +
-                  (parseInt(record.series_episodes) - rowLastVote.episode))));
+                (7 * (parseInt(record.series_episodes) + episode1Index - 1)));
             result.date_finish = formatMalDate(endDate);
             result.status = STATUS.COMPLETED;
           }
@@ -204,8 +202,8 @@ async function main() {
         }
       }
 
-      console.log(result);
-      console.log(record);
+      // console.log(result);
+      // console.log(record);
       try {
         normalizeAnimePayload(result, record);
         console.log(result);
