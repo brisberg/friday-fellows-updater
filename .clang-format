@@ -3,3 +3,4 @@ BasedOnStyle:    Google
 ColumnLimit:     80
 SpacesInContainerLiterals: false
 SpacesBeforeTrailingComments: 1
+JavaScriptWrapImports: true

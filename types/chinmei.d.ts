@@ -52,7 +52,7 @@ export interface MangaModel {
 }
 
 export interface GetMalUserResponse {
-  myinfo: MalUserInfo, anime: [MalAnimeRecord],
+  myinfo: MalUserInfo, anime: [MalMyAnimeRecord],
 }
 
 export interface MalUserInfo {
@@ -67,22 +67,22 @@ export interface MalUserInfo {
 }
 
 export interface MalMyAnimeRecord {
-  series_animedb_id: number;
+  series_animedb_id: string;
   series_title: string;
   series_synonyms: string;
-  series_episodes: number;
-  series_status: number;
+  series_episodes: string;
+  series_status: string;
   series_start: string;
   series_end: string;
   series_image: string;
-  my_id: number;
+  my_id: string;
   my_watched_episodes: string;
   my_start_date: string;
   my_finish_date: string;
   my_score: string;
   my_status: string;
-  my_rewatching_ep: number;
-  my_last_updated: number;
+  my_rewatching_ep: string;
+  my_last_updated: string;
   my_tags: string;
 }
 
@@ -91,7 +91,7 @@ export interface MalAnimeModel {
   title: string;
   english: string;
   synonyms: string;
-  episodes: number;
+  episodes: string;
   score: string;
   type: string;
   status: string;
