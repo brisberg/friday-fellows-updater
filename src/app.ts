@@ -113,7 +113,8 @@ async function main() {
 
     if (record) {
       if (!record.my_tags.includes(seasonTag)) {
-        result.tags = seasonTag + ', ' + record.my_tags;
+        result.tags =
+            record.my_tags ? seasonTag + ', ' + record.my_tags : seasonTag;
       }
 
       const episode1Index = row.findIndex((cell) => {
