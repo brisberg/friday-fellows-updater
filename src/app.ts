@@ -39,8 +39,6 @@ enum STATUS {
 async function main() {
   let sheets; // Api Clients
   let mal;
-  const season = 'WINTER 2014';
-  const seasonTag = generateSeasonTag(season);
 
   try {
     sheets = await initializeGoogleClient(SCOPES);
@@ -62,30 +60,9 @@ async function main() {
             console.error('Failed to fetch from MyAnimeList');
             throw err;
           });
-  const sheetsFetchP =
-      promisify(sheets.spreadsheets.values.get, {
-        spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
-        majorDimension: 'ROWS',
-        range: '\'' + season + '\'!A2:K30',
-      })
-          .then((res: AxiosResponse) => {
-            const rows = res.data.values;
-            if (rows.length === 0) {
-              console.log('No data found in sheet');
-              return;
-            } else {
-              return rows;
-            }
-          })
-          .catch((e) => {
-            console.error('GoogleSheets API returned an error.');
-            throw e;
-          });
 
-  let [animeList, votingRows] = await Promise.all([
-    listFetchP,
-    sheetsFetchP,
-  ]);
+
+  let animeList = await listFetchP;
   const malRecords = new Map<string, MalMyAnimeRecord>();
   const ongoing = new Map<string, AnimeModel>();
   animeList.forEach((record: MalMyAnimeRecord) => {
@@ -93,129 +70,159 @@ async function main() {
   });
   console.log('Got all the results');
   console.log('List length: ' + animeList.length);
-  console.log('Voting results for ' + votingRows.length + ' series');
 
-  // debug settings
-  const seasonStartDate = new Date(2014, 0, 10);
-  const daysInASeason = 7 * 13; // thirteen weeks in a season
+  // WIP hardcoded list of seasons
+  const seasons = ['FALL 2013', 'WINTER 2014', 'SPRING 2014'];
+  const seasonStartDates =
+      [new Date(2013, 8, 27), new Date(2014, 0, 10), new Date(2014, 3, 11)];
+  seasons.forEach(async (season: string, index: number) => {
+    const seasonStartDate = seasonStartDates[index];
+    const seasonTag = generateSeasonTag(season);
 
-  const seasonFinished = daysBetween(seasonStartDate, new Date()) > (7 * 13);
-  const seasonEndDate = new Date(seasonStartDate);
-  seasonEndDate.setDate(seasonStartDate.getDate() + daysInASeason);
+    // debug settings
+    const daysInASeason = 7 * 13; // thirteen weeks in a season
 
-  // Do the processing for the season
-  votingRows.forEach(async (row) => {
-    // let newAnime = false; // flag indicating we should add a new show
-    let title = row[0];
-    const record: MalMyAnimeRecord = await getMalRecord(title, malRecords, mal);
-    const result: AnimeModel = {id: parseInt(record.series_animedb_id)};
-    let rowLastVote: ParsedCellInfo;
+    const seasonFinished = daysBetween(seasonStartDate, new Date()) > (7 * 13);
+    const seasonEndDate = new Date(seasonStartDate);
+    seasonEndDate.setDate(seasonStartDate.getDate() + daysInASeason);
 
-    if (record) {
-      if (!record.my_tags.includes(seasonTag)) {
-        result.tags =
-            record.my_tags ? seasonTag + ', ' + record.my_tags : seasonTag;
-      }
+    const votingRows =
+        await promisify(sheets.spreadsheets.values.get, {
+          spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
+          majorDimension: 'ROWS',
+          range: '\'' + season + '\'!A2:K30',
+        })
+            .then((res: AxiosResponse) => {
+              const rows = res.data.values;
+              if (rows.length === 0) {
+                console.log('No data found in sheet');
+                return;
+              } else {
+                return rows;
+              }
+            })
+            .catch((e) => {
+              console.error('GoogleSheets API returned an error.');
+              throw e;
+            });
 
-      const episode1Index = row.findIndex((cell) => {
-        return cell.startsWith('Ep. 01');
-      });
-      if (episode1Index !== -1) {
-        // Set the start date as the week we saw episode 1
-        const startDate = new Date(seasonStartDate.getTime());
-        startDate.setDate(startDate.getDate() + (7 * (episode1Index - 1)));
-        result.date_start = formatMalDate(startDate);
-        result.status = STATUS.WATCHING;
-      }
+    console.log('Voting results for ' + votingRows.length + ' series');
 
-      let endIndex = row.length - 1;
-      for (; endIndex >= 1; endIndex--) {
-        if (row[endIndex].startsWith('Ep. ')) {
-          break;
+    // Do the processing for the season
+    votingRows.forEach(async (row) => {
+      // let newAnime = false; // flag indicating we should add a new show
+      let title = row[0];
+      const record: MalMyAnimeRecord =
+          await getMalRecord(title, malRecords, mal);
+      const result: AnimeModel = {id: parseInt(record.series_animedb_id)};
+      let rowLastVote: ParsedCellInfo;
+
+      if (record) {
+        if (!record.my_tags.includes(seasonTag)) {
+          result.tags =
+              record.my_tags ? seasonTag + ', ' + record.my_tags : seasonTag;
         }
-      }
-      // TODO: do a try here to catch poorly formatted cells?
-      rowLastVote = parseVoteCell(endIndex, row[endIndex]);
 
-      console.log(
-          title + ' Ep. ' + rowLastVote.episode + ' ' + rowLastVote.votesFor +
-          '-' + rowLastVote.votesAgainst);
+        const episode1Index = row.findIndex((cell) => {
+          return cell.startsWith('Ep. 01');
+        });
+        if (episode1Index !== -1) {
+          // Set the start date as the week we saw episode 1
+          const startDate = new Date(seasonStartDate.getTime());
+          startDate.setDate(startDate.getDate() + (7 * (episode1Index - 1)));
+          result.date_start = formatMalDate(startDate);
+          result.status = STATUS.WATCHING;
+        }
 
-      if (rowLastVote.votesFor < rowLastVote.votesAgainst) {
-        // Anime lost, so this was the last episode we saw
-        result.status = STATUS.DROPPED;
-        result.episode = rowLastVote.episode;
-      } else {
-        // Show passed
-        if (seasonFinished) {
-          // Season is over, and the anime survived
-          if (ongoing.get(record.series_animedb_id)) {
-            // Series was on going
-            if (ongoing.get(record.series_animedb_id).episode + 13 >
-                parseInt(record.series_episodes)) {
-              // Series is finished
+        let endIndex = row.length - 1;
+        for (; endIndex >= 1; endIndex--) {
+          if (row[endIndex].startsWith('Ep. ')) {
+            break;
+          }
+        }
+        // TODO: do a try here to catch poorly formatted cells?
+        rowLastVote = parseVoteCell(endIndex, row[endIndex]);
+
+        console.log(
+            title + ' Ep. ' + rowLastVote.episode + ' ' + rowLastVote.votesFor +
+            '-' + rowLastVote.votesAgainst);
+
+        if (rowLastVote.votesFor < rowLastVote.votesAgainst) {
+          // Anime lost, so this was the last episode we saw
+          result.status = STATUS.DROPPED;
+          result.episode = rowLastVote.episode;
+        } else {
+          // Show passed
+          if (seasonFinished) {
+            // Season is over, and the anime survived
+            if (ongoing.get(record.series_animedb_id)) {
+              // Series was on going
+              if (ongoing.get(record.series_animedb_id).episode + 13 >
+                  parseInt(record.series_episodes)) {
+                // Series is finished
+                result.episode = parseInt(record.series_episodes);
+                const endDate = new Date(seasonStartDate.getTime());
+                endDate.setDate(
+                    endDate.getDate() +
+                    (7 *
+                     (parseInt(record.series_episodes) -
+                      ongoing.get(record.series_animedb_id).episode)));
+                result.date_finish = formatMalDate(endDate);
+                result.status = STATUS.COMPLETED;
+              } else {
+                result.episode =
+                    ongoing.get(record.series_animedb_id).episode + 13;
+                ongoing.set(record.series_animedb_id, result);
+              }
+            } else {
+              // First time we have seen this series, series is ended
               result.episode = parseInt(record.series_episodes);
               const endDate = new Date(seasonStartDate.getTime());
               endDate.setDate(
                   endDate.getDate() +
-                  (7 *
-                   (parseInt(record.series_episodes) -
-                    ongoing.get(record.series_animedb_id).episode)));
+                  (7 * (parseInt(record.series_episodes) + episode1Index - 1)));
               result.date_finish = formatMalDate(endDate);
               result.status = STATUS.COMPLETED;
-            } else {
-              result.episode =
-                  ongoing.get(record.series_animedb_id).episode + 13;
-              ongoing.set(record.series_animedb_id, result);
             }
           } else {
-            // First time we have seen this series, series is ended
-            result.episode = parseInt(record.series_episodes);
-            const endDate = new Date(seasonStartDate.getTime());
-            endDate.setDate(
-                endDate.getDate() +
-                (7 * (parseInt(record.series_episodes) + episode1Index - 1)));
-            result.date_finish = formatMalDate(endDate);
-            result.status = STATUS.COMPLETED;
-          }
-        } else {
-          // This is the current season
-          // current season and show is continuing
-          if (row[row.length - 1] === 'BYE') {
-            // last records are BYE weeks, so use the last known vote
-            result.episode = rowLastVote.episode;
-            result.status = STATUS.WATCHING;
-          } else {
-            // last record is a successful vote.
-            const weeksOfSeason: number = daysBetween(
-                seasonStartDate,
-                new Date()); // maybe add a day to give time for update?
-            result.episode =
-                rowLastVote.episode + (weeksOfSeason - rowLastVote.weekIndex);
-            if (result.episode >= parseInt(record.series_episodes)) {
-              result.episode = parseInt(record.series_episodes);
-              result.status = STATUS.COMPLETED;
-            } else {
+            // This is the current season
+            // current season and show is continuing
+            if (row[row.length - 1] === 'BYE') {
+              // last records are BYE weeks, so use the last known vote
+              result.episode = rowLastVote.episode;
               result.status = STATUS.WATCHING;
+            } else {
+              // last record is a successful vote.
+              const weeksOfSeason: number = daysBetween(
+                  seasonStartDate,
+                  new Date()); // maybe add a day to give time for update?
+              result.episode =
+                  rowLastVote.episode + (weeksOfSeason - rowLastVote.weekIndex);
+              if (result.episode >= parseInt(record.series_episodes)) {
+                result.episode = parseInt(record.series_episodes);
+                result.status = STATUS.COMPLETED;
+              } else {
+                result.status = STATUS.WATCHING;
+              }
             }
           }
         }
-      }
 
-      // console.log(result);
-      // console.log(record);
-      try {
-        normalizeAnimePayload(result, record);
-        console.log(result);
+        // console.log(result);
+        // console.log(record);
+        try {
+          normalizeAnimePayload(result, record);
+          console.log(result);
 
-        if (Object.keys(result).length > 1) {
-          // if (newAnime) await mal.addAnime(animePayload)
-          // else await mal.updateAnime(animePayload)
+          if (Object.keys(result).length > 1) {
+            // if (newAnime) await mal.addAnime(animePayload)
+            // else await mal.updateAnime(animePayload)
+          }
+        } catch (err) {
+          console.error(err);
         }
-      } catch (err) {
-        console.error(err);
       }
-    }
+    });
   });
 }
 
