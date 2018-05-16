@@ -72,11 +72,15 @@ async function main() {
   console.log('List length: ' + animeList.length);
 
   // WIP hardcoded list of seasons
-  const seasons = ['FALL 2013', 'WINTER 2014', 'SPRING 2014'];
-  const seasonStartDates =
-      [new Date(2013, 8, 27), new Date(2014, 0, 10), new Date(2014, 3, 11)];
-  seasons.forEach(async (season: string, index: number) => {
-    const seasonStartDate = seasonStartDates[index];
+  const seasons: Array<[string, Date]> = [
+    ['FALL 2013', new Date(2013, 8, 27)],
+    ['WINTER 2014', new Date(2014, 0, 10)],
+    ['SPRING 2014', new Date(2014, 3, 11)],
+  ];
+  for (let seasonTuple of seasons) {
+    const season: string = seasonTuple[0];
+    console.log('Starting processing ' + season);
+    const seasonStartDate: Date = seasonTuple[1];
     const seasonTag = generateSeasonTag(season);
 
     // debug settings
@@ -109,7 +113,7 @@ async function main() {
     console.log('Voting results for ' + votingRows.length + ' series');
 
     // Do the processing for the season
-    votingRows.forEach(async (row) => {
+    for (let row of votingRows) {
       // let newAnime = false; // flag indicating we should add a new show
       let title = row[0];
       const record: MalMyAnimeRecord =
@@ -155,11 +159,16 @@ async function main() {
           // Show passed
           if (seasonFinished) {
             // Season is over, and the anime survived
+            console.log('season finished');
+            console.log(ongoing.get(record.series_animedb_id));
             if (ongoing.get(record.series_animedb_id)) {
               // Series was on going
-              if (ongoing.get(record.series_animedb_id).episode + 13 >
+              if (ongoing.get(record.series_animedb_id).episode + 13 >=
                   parseInt(record.series_episodes)) {
                 // Series is finished
+                // console.log(
+                //     title + ' ongoing series finished. Recorded episode: ' +
+                //     ongoing.get(record.series_animedb_id).episode);
                 result.episode = parseInt(record.series_episodes);
                 const endDate = new Date(seasonStartDate.getTime());
                 endDate.setDate(
@@ -173,16 +182,30 @@ async function main() {
                 result.episode =
                     ongoing.get(record.series_animedb_id).episode + 13;
                 ongoing.set(record.series_animedb_id, result);
+                // console.log(
+                //     title + 'ongoing series continuing' + result.episode);
               }
             } else {
               // First time we have seen this series, series is ended
-              result.episode = parseInt(record.series_episodes);
-              const endDate = new Date(seasonStartDate.getTime());
-              endDate.setDate(
-                  endDate.getDate() +
-                  (7 * (parseInt(record.series_episodes) + episode1Index - 1)));
-              result.date_finish = formatMalDate(endDate);
-              result.status = STATUS.COMPLETED;
+              // console.log(record);
+              const seriesEpisodes = parseInt(record.series_episodes);
+              // console.log(
+              //     title +
+              //     ' first time seen, series is ended, ep:' + seriesEpisodes);
+              if (seriesEpisodes <= 13) {
+                result.episode = seriesEpisodes;
+                const endDate = new Date(seasonStartDate.getTime());
+                endDate.setDate(
+                    endDate.getDate() +
+                    (7 * (seriesEpisodes + episode1Index - 1)));
+                result.date_finish = formatMalDate(endDate);
+                result.status = STATUS.COMPLETED;
+              } else {
+                result.episode = 13;
+                result.status = STATUS.WATCHING;
+                // console.log('setting ongoing record for ' + title);
+                ongoing.set(record.series_animedb_id, result);
+              }
             }
           } else {
             // This is the current season
@@ -222,8 +245,8 @@ async function main() {
           console.error(err);
         }
       }
-    });
-  });
+    }
+  }
 }
 
 /**
