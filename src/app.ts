@@ -137,6 +137,7 @@ async function main() {
           await getMalRecord(title, malRecords, mal);
 
       if (!record) {
+        // Could not find record for anime, add to errors list
         errors.push({
           title,
           season,
@@ -189,9 +190,6 @@ async function main() {
               if (ongoingModel.episode + 13 >=
                   parseInt(record.series_episodes)) {
                 // Series is finished
-                // console.log(
-                //     title + ' ongoing series finished. Recorded episode: ' +
-                //     ongoingModel.episode);
                 result.episode = parseInt(record.series_episodes);
                 const endDate = new Date(seasonStartDate.getTime());
                 endDate.setDate(
@@ -205,16 +203,10 @@ async function main() {
                 result.episode = ongoingModel.episode + 13;
                 ongoing.set(
                     record.series_animedb_id, {...ongoingModel, ...result});
-                // console.log(
-                //     title + 'ongoing series continuing' + result.episode);
               }
             } else {
               // First time we have seen this series, series is ended
-              // console.log(record);
               const seriesEpisodes = parseInt(record.series_episodes);
-              // console.log(
-              //     title +
-              //     ' first time seen, series is ended, ep:' + seriesEpisodes);
               if (seriesEpisodes <= 13) {
                 result.episode = seriesEpisodes;
                 const endDate = new Date(seasonStartDate.getTime());
@@ -226,7 +218,6 @@ async function main() {
               } else {
                 result.episode = 13;
                 result.status = STATUS.WATCHING;
-                // console.log('setting ongoing record for ' + title);
                 ongoing.set(record.series_animedb_id, result);
               }
             }
@@ -241,7 +232,7 @@ async function main() {
               // last record is a successful vote.
               const weeksOfSeason: number = daysBetween(
                   seasonStartDate,
-                  new Date()); // maybe add a day to give time for update?
+                  new Date()); // TODO: maybe add a day to give time for update?
               result.episode =
                   rowLastVote.episode + (weeksOfSeason - rowLastVote.weekIndex);
               if (result.episode >= parseInt(record.series_episodes)) {
@@ -254,14 +245,10 @@ async function main() {
           }
         }
 
-        // console.log(result);
-        // console.log(record);
         const final = normalizeAnimePayload(result, record);
         console.log(final);
 
         if (Object.keys(final).length > 1) {
-          // if (newAnime) await mal.addAnime(animePayload)
-          // else await mal.updateAnime(animePayload)
           results.set(final.id, final);
         }
       }
@@ -272,6 +259,11 @@ async function main() {
   console.log(results);
   console.log('errors: ');
   console.log(errors);
+
+  for (const model of results) {
+    // TODO bring back the newAnime flag
+    await mal.updateAnime(model);
+  }
 }
 
 /**
