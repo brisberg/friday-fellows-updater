@@ -35,6 +35,12 @@ enum STATUS {
   PLANTOWATCH = 6,
 }
 
+export interface AnimeError {
+  title: string;
+  season: string;
+  row: number;
+}
+
 // Mapping of season name to starting month (Jan, Api, Jul, Oct).
 // const SEASON = {
 //     WINTER: 1,
@@ -75,6 +81,8 @@ async function main() {
   let animeList = await listFetchP;
   const malRecords = new Map<string, MalMyAnimeRecord>();
   const ongoing = new Map<string, AnimeModel>();
+  const results = new Map<number, AnimeModel>();
+  const errors: AnimeError[] = [];
   animeList.forEach((record: MalMyAnimeRecord) => {
     malRecords.set(record.series_title, record);
   });
@@ -123,15 +131,22 @@ async function main() {
     console.log('Voting results for ' + votingRows.length + ' series');
 
     // Do the processing for the season
-    for (let row of votingRows) {
+    for (const [index, row] of votingRows.entries()) {
       // let newAnime = false; // flag indicating we should add a new show
       let title = row[0];
       const record: MalMyAnimeRecord =
           await getMalRecord(title, malRecords, mal);
-      const result: AnimeModel = {id: parseInt(record.series_animedb_id)};
-      let rowLastVote: ParsedCellInfo;
 
-      if (record) {
+      if (!record) {
+        errors.push({
+          title,
+          season,
+          row: index,
+        });
+      } else {
+        const result: AnimeModel = {id: parseInt(record.series_animedb_id)};
+        let rowLastVote: ParsedCellInfo;
+
         if (!record.my_tags.includes(seasonTag)) {
           result.tags =
               record.my_tags ? seasonTag + ', ' + record.my_tags : seasonTag;
@@ -243,20 +258,22 @@ async function main() {
 
         // console.log(result);
         // console.log(record);
-        try {
-          normalizeAnimePayload(result, record);
-          console.log(result);
+        const final = normalizeAnimePayload(result, record);
+        console.log(final);
 
-          if (Object.keys(result).length > 1) {
-            // if (newAnime) await mal.addAnime(animePayload)
-            // else await mal.updateAnime(animePayload)
-          }
-        } catch (err) {
-          console.error(err);
+        if (Object.keys(final).length > 1) {
+          // if (newAnime) await mal.addAnime(animePayload)
+          // else await mal.updateAnime(animePayload)
+          results.set(final.id, final);
         }
       }
     }
   }
+
+  console.log('results: ');
+  console.log(results);
+  console.log('errors: ');
+  console.log(errors);
 }
 
 /**
@@ -267,20 +284,23 @@ async function main() {
  */
 async function getMalRecord(
     title: string, malRecords: Map<string, MalMyAnimeRecord>,
-    mal: Chinmei): Promise<MalMyAnimeRecord> {
+    mal: Chinmei): Promise<MalMyAnimeRecord|null> {
   if (malRecords.has(title)) {
     return Promise.resolve(malRecords.get(title));
   } else {
     // If found, add the new show with the specified episode count
     return mal.searchSingleAnime(title)
         .then((res: MalAnimeModel) => {
-          // newAnime = true;
-          return convertMalAnimeModel(res);
+          if (res.title === title) {
+            return convertMalAnimeModel(res);
+          } else {
+            return null;
+          }
         })
         .catch((err) => {
           // If not found, log an error
           console.log('No record or MAL listing found for ' + title);
-          // TODO: Log missing to missing list
+          return null;
         });
   }
 }
