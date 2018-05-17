@@ -15,7 +15,13 @@ import {
   MalMyAnimeRecord,
 } from '../types/chinmei';
 import {AxiosResponse} from 'axios';
-import {formatMalDate, daysBetween, generateSeasonTag} from './utils';
+import {
+  formatMalDate,
+  daysBetween,
+  convertMalAnimeModel,
+  generateSeasonTag,
+  normalizeAnimePayload,
+} from './utils';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
 enum STATUS {
@@ -331,33 +337,6 @@ function initializeChinmeiClient(credPath: string): Chinmei {
       }
     });
   });
-}
-
-/**
- * Converts a MalAnimeModel to a MalMyAnimeRecord
- * @param {MalAnimeModel} model Model returned from searchSingleAnime()
- * @return {MalMyAnimeRecord} converted Record
- */
-function convertMalAnimeModel(model: MalAnimeModel): MalMyAnimeRecord {
-  return {
-    series_animedb_id: model.id,
-    series_title: model.title,
-    series_synonyms: model.synonyms,
-    series_episodes: model.episodes,
-    series_status: model.status,
-    series_start: model.start_date,
-    series_end: model.end_date,
-    series_image: model.image,
-    my_id: '',
-    my_watched_episodes: '',
-    my_start_date: '',
-    my_finish_date: '',
-    my_score: '',
-    my_status: '',
-    my_rewatching_ep: '',
-    my_last_updated: '',
-    my_tags: '',
-  };
 }
 
 /**

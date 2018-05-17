@@ -1,4 +1,4 @@
-import {AnimeModel, MalMyAnimeRecord} from '../types/chinmei';
+import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from '../types/chinmei';
 
 /**
  * @param {Date} date
@@ -85,4 +85,31 @@ export function normalizeAnimePayload(
     result.tags = animePayload.tags;
   }
   return result;
+}
+
+/**
+ * Converts a MalAnimeModel to a MalMyAnimeRecord
+ * @param {MalAnimeModel} model Model returned from searchSingleAnime()
+ * @return {MalMyAnimeRecord} converted Record
+ */
+export function convertMalAnimeModel(model: MalAnimeModel): MalMyAnimeRecord {
+  return {
+    series_animedb_id: model.id,
+    series_title: model.title,
+    series_synonyms: model.synonyms,
+    series_episodes: model.episodes,
+    series_status: model.status,
+    series_start: model.start_date,
+    series_end: model.end_date,
+    series_image: model.image,
+    my_id: '',
+    my_watched_episodes: '',
+    my_start_date: '',
+    my_finish_date: '',
+    my_score: '',
+    my_status: '',
+    my_rewatching_ep: '',
+    my_last_updated: '',
+    my_tags: '',
+  };
 }

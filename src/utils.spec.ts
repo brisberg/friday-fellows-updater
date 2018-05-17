@@ -2,9 +2,10 @@ import 'mocha';
 
 import {expect} from 'chai';
 
-import {AnimeModel, MalMyAnimeRecord} from '../types/chinmei';
+import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from '../types/chinmei';
 
 import {
+  convertMalAnimeModel,
   daysBetween,
   formatMalDate,
   generateSeasonTag,
@@ -97,5 +98,50 @@ describe('normalizeAnimePayload function', () => {
     expect(() => normalizeAnimePayload(model, record))
         .to.throw(
             'Somehow payload and record have different anime ids. Skipping');
+  });
+});
+
+describe('convertMalAnimeModel function', () => {
+  let model: MalAnimeModel;
+
+  before(() => {
+    model = {
+      id: '12345',
+      title: 'foobar',
+      english: 'barbaz',
+      synonyms: 'foobaz',
+      episodes: '13',
+      score: '9',
+      type: 'TV',
+      status: 'Finished Airing',
+      start_date: '2014-01-25',
+      end_date: '2014-04-22',
+      image: 'foo.png',
+    };
+  });
+
+  it('should convert to a MalMyAnimeRecord', () => {
+    const expected: MalMyAnimeRecord = {
+      series_animedb_id: model.id,
+      series_title: model.title,
+      series_synonyms: model.synonyms,
+      series_episodes: model.episodes,
+      series_status: model.status,
+      series_start: model.start_date,
+      series_end: model.end_date,
+      series_image: model.image,
+      my_id: '',
+      my_watched_episodes: '',
+      my_start_date: '',
+      my_finish_date: '',
+      my_score: '',
+      my_status: '',
+      my_rewatching_ep: '',
+      my_last_updated: '',
+      my_tags: '',
+    };
+    const result = convertMalAnimeModel(model);
+
+    expect(result).to.deep.equal(expected);
   });
 });
