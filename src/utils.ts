@@ -1,3 +1,5 @@
+import {AnimeModel, MalMyAnimeRecord} from '../types/chinmei';
+
 /**
  * @param {Date} date
  * @return {string} Date formatted as '2018-05-10'
@@ -49,4 +51,38 @@ export function generateSeasonTag(season: string): string {
         return (word.charAt(0).toUpperCase() + word.slice(1));
       })
       .join(' ');
+}
+
+/**
+ *  Removes field from the payload which are already recorded in the record.
+ *  @param {AnimeModel} animePayload Model to be deduped.
+ *  @param {MalMyAnimeRecord} animeRecord Record from Mal to compare against.
+ *  @return {AnimeModel} Resulting de-duped model
+ */
+export function normalizeAnimePayload(
+    animePayload: AnimeModel, animeRecord: MalMyAnimeRecord): AnimeModel {
+  const result: AnimeModel = {id: animePayload.id};
+  if (animePayload.id !== parseInt(animeRecord.series_animedb_id)) {
+    throw new Error(
+        'Somehow payload and record have different anime ids. Skipping');
+  }
+  if (animePayload.episode !== parseInt(animeRecord.my_watched_episodes)) {
+    result.episode = animePayload.episode;
+  }
+  if (animePayload.status !== parseInt(animeRecord.my_status)) {
+    result.status = animePayload.status;
+  }
+  if (animePayload.score !== parseInt(animeRecord.my_score)) {
+    result.score = animePayload.score;
+  }
+  if (animePayload.date_start !== animeRecord.my_start_date) {
+    result.date_start = animePayload.date_start;
+  }
+  if (animePayload.date_finish !== animeRecord.my_finish_date) {
+    result.date_finish = animePayload.date_finish;
+  }
+  if (animePayload.tags !== animeRecord.my_tags) {
+    result.tags = animePayload.tags;
+  }
+  return result;
 }

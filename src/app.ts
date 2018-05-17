@@ -276,37 +276,6 @@ async function getMalRecord(
   }
 }
 
-/**
- *  Removes field from the payload which are already recorded in the record.
- *  @param {AnimeModel} animePayload Model to be deduped.
- *  @param {MalMyAnimeRecord} animeRecord Record from Mal to compare against.
- */
-function normalizeAnimePayload(
-    animePayload: AnimeModel, animeRecord: MalMyAnimeRecord) {
-  if (animePayload.id !== parseInt(animeRecord.series_animedb_id)) {
-    throw new Error(
-        'Somehow payload and record have different anime ids. Skipping');
-  }
-  if (animePayload.episode === parseInt(animeRecord.my_watched_episodes)) {
-    delete animePayload.episode;
-  }
-  if (animePayload.status === parseInt(animeRecord.my_status)) {
-    delete animePayload.status;
-  }
-  if (animePayload.score === parseInt(animeRecord.my_score)) {
-    delete animePayload.score;
-  }
-  if (animePayload.date_start === animeRecord.my_start_date) {
-    delete animePayload.date_start;
-  }
-  if (animePayload.date_finish === animeRecord.my_finish_date) {
-    delete animePayload.date_finish;
-  }
-  if (animePayload.tags === animeRecord.my_tags) {
-    delete animePayload.tags;
-  }
-}
-
 export interface ParsedCellInfo {
   weekIndex: number;
   episode: number;
