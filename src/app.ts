@@ -1,8 +1,3 @@
-// const http = require('http');
-//
-// const hostname = '127.0.0.1';
-// const port = 3000;
-
 import * as fs from 'fs';
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 import {initializeGoogleClient} from './google.auth.js';
@@ -36,18 +31,11 @@ enum STATUS {
 }
 
 export interface AnimeError {
-  title: string;
   season: string;
-  row: number;
+  date?: string;
+  title?: string;
+  row?: number;
 }
-
-// Mapping of season name to starting month (Jan, Api, Jul, Oct).
-// const SEASON = {
-//     WINTER: 1,
-//     SPRING: 4,
-//     SUMMER: 7,
-//     FALL: 10,
-// }
 
 /**
  * Main runner
@@ -89,38 +77,38 @@ async function main() {
   console.log('Got all the results');
   console.log('List length: ' + animeList.length);
 
-  // WIP hardcoded list of seasons
-  const seasons: Array<[string, Date]> = [
-    ['FALL 2013', new Date(2013, 8, 27)],
-    ['WINTER 2014', new Date(2014, 0, 10)],
-    ['SPRING 2014', new Date(2014, 3, 11)],
-  ];
-  for (let seasonTuple of seasons) {
-    const season: string = seasonTuple[0];
+  const seasons: string[] =
+      await promisify(sheets.spreadsheets.get, {
+        spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
+        fields: 'sheets.properties.title',
+      })
+          .then((res: AxiosResponse) => {
+            return res.data.sheets.map((sheet) => sheet.properties.title)
+                .reverse();
+          })
+          .catch((err) => {
+            console.log('GoogleSheets API returned an error.');
+            throw err;
+          });
+
+  for (let season of seasons) {
     console.log('Starting processing ' + season);
-    const seasonStartDate: Date = seasonTuple[1];
     const seasonTag = generateSeasonTag(season);
 
-    // debug settings
-    const daysInASeason = 7 * 13; // thirteen weeks in a season
-
-    const seasonFinished = daysBetween(seasonStartDate, new Date()) > (7 * 13);
-    const seasonEndDate = new Date(seasonStartDate);
-    seasonEndDate.setDate(seasonStartDate.getDate() + daysInASeason);
-
-    const votingRows =
-        await promisify(sheets.spreadsheets.values.get, {
+    const {votingRows, startDateString} =
+        await promisify(sheets.spreadsheets.values.batchGet, {
           spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
           majorDimension: 'ROWS',
-          range: '\'' + season + '\'!A2:K30',
+          ranges: ['\'' + season + '\'!A2:K30', '\'' + season + '\'!B1:B1'],
         })
             .then((res: AxiosResponse) => {
-              const rows = res.data.values;
-              if (rows.length === 0) {
+              const votingRows = res.data.valueRanges[0].values;
+              const startDateString = res.data.valueRanges[1].values[0];
+              if (votingRows.length === 0) {
                 console.log('No data found in sheet');
                 return;
               } else {
-                return rows;
+                return {votingRows, startDateString};
               }
             })
             .catch((e) => {
@@ -129,6 +117,17 @@ async function main() {
             });
 
     console.log('Voting results for ' + votingRows.length + ' series');
+
+    const startDateMs = Date.parse(startDateString);
+    if (Number.isNaN(startDateMs)) {
+      console.log(
+          'Start date (' + startDateString + 'in cell B2 for ' + season +
+          ' could not be parsed as a date.');
+      errors.push({season, date: startDateString});
+      continue;
+    }
+    const seasonStartDate = new Date(startDateMs);
+    const seasonFinished = daysBetween(seasonStartDate, new Date()) > (7 * 13);
 
     // Do the processing for the season
     for (const [index, row] of votingRows.entries()) {
@@ -184,29 +183,28 @@ async function main() {
           // Show passed
           if (seasonFinished) {
             // Season is over, and the anime survived
-            console.log('season finished');
-            console.log(ongoing.get(record.series_animedb_id));
             if (ongoing.get(record.series_animedb_id)) {
               // Series was on going
-              if (ongoing.get(record.series_animedb_id).episode + 13 >=
+              const ongoingModel = ongoing.get(record.series_animedb_id);
+              if (ongoingModel.episode + 13 >=
                   parseInt(record.series_episodes)) {
                 // Series is finished
                 // console.log(
                 //     title + ' ongoing series finished. Recorded episode: ' +
-                //     ongoing.get(record.series_animedb_id).episode);
+                //     ongoingModel.episode);
                 result.episode = parseInt(record.series_episodes);
                 const endDate = new Date(seasonStartDate.getTime());
                 endDate.setDate(
                     endDate.getDate() +
                     (7 *
                      (parseInt(record.series_episodes) -
-                      ongoing.get(record.series_animedb_id).episode)));
+                      ongoingModel.episode)));
                 result.date_finish = formatMalDate(endDate);
                 result.status = STATUS.COMPLETED;
               } else {
-                result.episode =
-                    ongoing.get(record.series_animedb_id).episode + 13;
-                ongoing.set(record.series_animedb_id, result);
+                result.episode = ongoingModel.episode + 13;
+                ongoing.set(
+                    record.series_animedb_id, {...ongoingModel, ...result});
                 // console.log(
                 //     title + 'ongoing series continuing' + result.episode);
               }
