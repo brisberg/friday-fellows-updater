@@ -15,7 +15,7 @@ import {
   MalMyAnimeRecord,
 } from '../types/chinmei';
 import {AxiosResponse} from 'axios';
-import {formatMalDate} from './utils';
+import {formatMalDate, daysBetween} from './utils';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
 enum STATUS {
@@ -248,20 +248,6 @@ async function main() {
       }
     }
   }
-}
-
-/**
- * @param {Date} start
- * @param {Date} end
- * @return {number} Whole number days that elapsed between start and end.
- */
-function daysBetween(start, end) {
-  console.log(start, end);
-  const oneDay = 1000 * 60 * 60 * 24;
-  const startMs = start.getTime();
-  const endMs = end.getTime();
-  const differenceMs = endMs - startMs;
-  return Math.round(differenceMs / oneDay);
 }
 
 /**
