@@ -21,6 +21,8 @@ import {
   convertMalAnimeModel,
   generateSeasonTag,
   normalizeAnimePayload,
+  parseVoteCell,
+  ParsedCellInfo,
 } from './utils';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
@@ -280,29 +282,6 @@ async function getMalRecord(
           // TODO: Log missing to missing list
         });
   }
-}
-
-export interface ParsedCellInfo {
-  weekIndex: number;
-  episode: number;
-  votesFor: number;
-  votesAgainst: number;
-}
-
-/**
- * @param {number} index column index of this cell
- * @param {string} value string of the form "Ep. <epNum>: <votesFor> to
- * <votesAgainst>" to parse into
- * its variable parts.
- * @return {ParsedCellInfo} Wrapper for episodes, votesFor and
- * VotesAgainst.
- */
-function parseVoteCell(index: number, value: string): ParsedCellInfo {
-  const parts = value.split(' ');
-  const episode = parseInt(parts[1].slice(0, -1));
-  const votesFor = parseInt(parts[2]);
-  const votesAgainst = parseInt(parts[4]);
-  return {weekIndex: index, episode, votesFor, votesAgainst};
 }
 
 // Main call

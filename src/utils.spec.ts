@@ -10,6 +10,8 @@ import {
   formatMalDate,
   generateSeasonTag,
   normalizeAnimePayload,
+  ParsedCellInfo,
+  parseVoteCell,
 } from './utils';
 
 describe('formatMalDate function', () => {
@@ -143,5 +145,51 @@ describe('convertMalAnimeModel function', () => {
     const result = convertMalAnimeModel(model);
 
     expect(result).to.deep.equal(expected);
+  });
+});
+
+describe('parseVoteCell function', () => {
+  const cellValue = 'Ep. 01: 3 to 4';
+  const expected: ParsedCellInfo = {
+    weekIndex: 1,
+    episode: 1,
+    votesFor: 3,
+    votesAgainst: 4,
+  };
+
+  it('should include the weekIndex in the result', () => {
+    const result = parseVoteCell(5, cellValue);
+
+    expect(result.weekIndex).to.equal(5);
+  });
+
+  it('should parse the value of a cell', () => {
+    const result = parseVoteCell(1, cellValue);
+
+    expect(result).to.deep.equal(expected);
+  });
+
+  it('should produce NaN for for episode if it cannot be parsed', () => {
+    const invalidEpisode = 'Ep. ZZ: 3 to 4';
+
+    const result = parseVoteCell(1, invalidEpisode);
+
+    expect(Number.isNaN(result.episode), 'Episode should be NaN');
+  });
+
+  it('should produce NaN for for votesFor if it cannot be parsed', () => {
+    const invalidVotesFor = 'Ep. 01: ZZ to 4';
+
+    const result = parseVoteCell(1, invalidVotesFor);
+
+    expect(Number.isNaN(result.votesFor), 'VotesFor should be NaN');
+  });
+
+  it('should produce NaN for for votesAgainst if it cannot be parsed', () => {
+    const invalidVotesAgainst = 'Ep. 01: 3 to ZZ';
+
+    const result = parseVoteCell(1, invalidVotesAgainst);
+
+    expect(Number.isNaN(result.votesAgainst), 'VotesAgainst should be NaN');
   });
 });
