@@ -12,7 +12,39 @@ import {
   normalizeAnimePayload,
   ParsedCellInfo,
   parseVoteCell,
+  promisify,
 } from './utils';
+
+describe('promisify function', () => {
+  it('should return a promise to resolves when the call succeeds', () => {
+    const fn = (params, callback) => {
+      return callback(null, {'foo': 'bar'});
+    };
+    promisify(fn, {}).then((res) => {
+      expect(res).to.deep.equal({'foo': 'bar'});
+    });
+  });
+
+  it('should return a promise to rejects when the call returns an error',
+     () => {
+       const fn = (params, callback) => {
+         return callback('foo error', null);
+       };
+       promisify(fn, {}).catch((err) => {
+         expect(err).to.equal('foo error');
+       });
+     });
+
+  it('should return a promise that passes params object to the wrapped call',
+     () => {
+       const mockParams = {foo: 'bar'};
+       const fn = (params, callback) => {
+         expect(params).to.equal(mockParams);
+       };
+
+       promisify(fn, mockParams);
+     });
+});
 
 describe('formatMalDate function', () => {
   it('should return a formatted date', () => {

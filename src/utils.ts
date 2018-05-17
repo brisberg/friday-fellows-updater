@@ -1,6 +1,21 @@
 import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from '../types/chinmei';
 
 /**
+ * Used to convert google api calls into promises for use with await
+ * @param {function} fn function to wrap in promise.
+ * @param {Object} params parameters to pass to the wrapped function.
+ * @return {Promise} promise wrapping the function
+ */
+export function promisify(fn: Function, params: any) {
+  return new Promise((resolve, reject) => {
+    fn(params, (err, res) => {
+      if (err) reject(err);
+      resolve(res);
+    });
+  });
+}
+
+/**
  * @param {Date} date
  * @return {string} Date formatted as '2018-05-10'
  */

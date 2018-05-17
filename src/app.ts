@@ -23,6 +23,7 @@ import {
   normalizeAnimePayload,
   parseVoteCell,
   ParsedCellInfo,
+  promisify,
 } from './utils';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
@@ -292,7 +293,6 @@ try {
 }
 
 /**
- * Used to convert google api calls into promises for use with await
  * @param {string} credPath path to Mal Credentials file.
  * @return {Chinmei} Authenticated Chinmei API Client
  */
@@ -314,21 +314,6 @@ function initializeChinmeiClient(credPath: string): Chinmei {
       } catch (err) {
         reject(err);
       }
-    });
-  });
-}
-
-/**
- * Used to convert google api calls into promises for use with await
- * @param {function} fn function to wrap in promise.
- * @param {Object} params parameters to pass to the wrapped function.
- * @return {Promise} promise wrapping the function
- */
-function promisify(fn: Function, params: any) {
-  return new Promise((resolve, reject) => {
-    fn(params, (err, res) => {
-      if (err) reject(err);
-      resolve(res);
     });
   });
 }
