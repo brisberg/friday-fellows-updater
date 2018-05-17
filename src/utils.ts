@@ -37,3 +37,16 @@ export function daysBetween(start, end) {
   const differenceMs = endMs - startMs;
   return Math.round(differenceMs / oneDay);
 }
+
+/**
+ * @param {string} season Season name to parse ex. 'WINTER 2014'
+ * @return {string} Parsed season tag, ex. 'Winter 2014'
+ */
+export function generateSeasonTag(season: string): string {
+  return season.toLowerCase()
+      .split(' ')
+      .map(function(word) {
+        return (word.charAt(0).toUpperCase() + word.slice(1));
+      })
+      .join(' ');
+}

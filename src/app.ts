@@ -15,7 +15,7 @@ import {
   MalMyAnimeRecord,
 } from '../types/chinmei';
 import {AxiosResponse} from 'axios';
-import {formatMalDate, daysBetween} from './utils';
+import {formatMalDate, daysBetween, generateSeasonTag} from './utils';
 const MAL_CRED_PATH = 'mal_credentials.json';
 
 enum STATUS {
@@ -275,20 +275,6 @@ async function getMalRecord(
         });
   }
 }
-
-/**
- * @param {string} season Season name to parse ex. 'WINTER 2014'
- * @return {string} Parsed season tag, ex. 'Winter 2014'
- */
-function generateSeasonTag(season: string): string {
-  return season.toLowerCase()
-      .split(' ')
-      .map(function(word) {
-        return (word.charAt(0).toUpperCase() + word.slice(1));
-      })
-      .join(' ');
-}
-
 
 /**
  *  Removes field from the payload which are already recorded in the record.
