@@ -1,4 +1,4 @@
-# friday-fellows-updater
+# Friday-fellows-updater
 Simple nodejs container for updating MAL progress for Friday Fellows
 
 
@@ -11,8 +11,13 @@ myChinmei.searchSingleAnime('Gegege no Kitaro (2018)')
     .catch(err => console.log(err));
 
 
-Local Development:
+## Local Development:
 
 `npm install`
 
 `npm start`
+
+
+## Run with Docker:
+
+`docker run -it --rm --name friday-fellows-updater -v "$PWD":/usr/src/app -w /usr/src/app node:10-alpine node dist/app.js`
