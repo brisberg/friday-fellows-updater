@@ -20,6 +20,6 @@ myChinmei.searchSingleAnime('Gegege no Kitaro (2018)')
 
 ## Run with Docker:
 
-`docker run -it --rm --name friday-fellows-updater -v "$PWD":/usr/src/app -w /usr/src/app node:10-slim node dist/app.js`
+`docker run -it --rm --name friday-fellows-updater -v "$PWD":/usr/src/app -w /usr/src/app armhf/node:10-slim node dist/app.js`
 
 Note: ARM arch only has node:10, node:10-slim, and node:10-stretch. 10-slim is the smallest available for now
