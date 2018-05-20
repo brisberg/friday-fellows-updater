@@ -18,6 +18,7 @@ export interface UserModel {
 export interface AnimeModel {
   id: number;
   episode?: number;
+  title?: string;
   status?: number|string;
   score?: number;
   storage_type?: number;

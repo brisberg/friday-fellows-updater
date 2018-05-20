@@ -144,7 +144,8 @@ async function main() {
           row: index,
         });
       } else {
-        const result: AnimeModel = {id: parseInt(record.series_animedb_id)};
+        const result:
+            AnimeModel = {id: parseInt(record.series_animedb_id), title};
         let rowLastVote: ParsedCellInfo;
 
         if (!record.my_tags.includes(seasonTag)) {
@@ -257,13 +258,26 @@ async function main() {
 
   console.log('results: ');
   console.log(results);
+  const resultsFile = 'logs/' + formatMalDate(new Date()) + '-results.json';
+  fs.writeFile(
+      resultsFile, JSON.stringify(Array.from(results.values())), (err) => {
+        if (err) throw err;
+
+        console.log('Results writted to ' + resultsFile);
+      });
   console.log('errors: ');
   console.log(errors);
+  const errorsFile = 'logs/' + formatMalDate(new Date()) + '-errors.json';
+  fs.writeFile(errorsFile, JSON.stringify(errors), (err) => {
+    if (err) throw err;
 
-  for (const model of results) {
-    // TODO bring back the newAnime flag
-    await mal.updateAnime(model);
-  }
+    console.log('Results writted to ' + errorsFile);
+  });
+
+  // for (const model of results) {
+  //   // TODO bring back the newAnime flag
+  //   await mal.updateAnime(model);
+  // }
 }
 
 /**
