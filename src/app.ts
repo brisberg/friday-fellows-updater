@@ -38,9 +38,10 @@ export interface AnimeError {
 }
 
 /**
+ * @param {boolean} dryRun whether this is a dry run
  * Main runner
  */
-async function main() {
+async function main(dryRun = false) {
   let sheets; // Api Clients
   let mal;
 
@@ -251,16 +252,18 @@ async function main() {
 
         const final = normalizeAnimePayload(result, record);
         console.log(final);
-
-        if (Object.keys(final).length > 2) { // id and title
-          results.set(final.id, final);
-        }
+        results.set(final.id, final);
       }
     }
   }
 
-  console.log('results: ');
-  console.log(results);
+  for (const key of results.keys()) {
+    if (Object.keys(results.get(key)).length <= 2) {
+      results.delete(results.get(key).id);
+    }
+  }
+
+  // print logs
   const resultsFile = 'logs/' + formatMalDate(new Date()) + '-results.json';
   fs.writeFile(
       resultsFile, JSON.stringify(Array.from(results.values())), (err) => {
@@ -268,8 +271,6 @@ async function main() {
 
         console.log('Results writted to ' + resultsFile);
       });
-  console.log('errors: ');
-  console.log(errors);
   const errorsFile = 'logs/' + formatMalDate(new Date()) + '-errors.json';
   fs.writeFile(errorsFile, JSON.stringify(errors), (err) => {
     if (err) throw err;
@@ -277,14 +278,16 @@ async function main() {
     console.log('Results writted to ' + errorsFile);
   });
 
-  // for (const model of results) {
-  //   // TODO bring back the newAnime flag
-  //   if (model.new) {
-  //     await mal.addAnime(model);
-  //   } else {
-  //     await mal.updateAnime(model);
-  //   }
-  // }
+  if (!dryRun) {
+    for (const model of results.values()) {
+      // TODO bring back the newAnime flag
+      if (model.new) {
+        await mal.addAnime(model);
+      } else {
+        await mal.updateAnime(model);
+      }
+    }
+  }
 }
 
 /**
@@ -320,7 +323,8 @@ async function getMalRecord(
 
 // Main call
 try {
-  main();
+  const args = process.argv.slice(2);
+  main(args[0] === '--dryRun');
 } catch (err) {
   console.log(err);
 }
