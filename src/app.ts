@@ -132,7 +132,7 @@ async function main() {
     // Do the processing for the season
     for (const [index, row] of votingRows.entries()) {
       // let newAnime = false; // flag indicating we should add a new show
-      let title = row[0];
+      const title = row[0];
       const record: MalMyAnimeRecord =
           await getMalRecord(title, malRecords, mal);
 
@@ -144,8 +144,11 @@ async function main() {
           row: index,
         });
       } else {
-        const result:
-            AnimeModel = {id: parseInt(record.series_animedb_id), title};
+        const result: AnimeModel = {
+          id: parseInt(record.series_animedb_id),
+          title,
+          new: record.newAnime,
+        };
         let rowLastVote: ParsedCellInfo;
 
         if (!record.my_tags.includes(seasonTag)) {
@@ -249,7 +252,7 @@ async function main() {
         const final = normalizeAnimePayload(result, record);
         console.log(final);
 
-        if (Object.keys(final).length > 1) {
+        if (Object.keys(final).length > 2) { // id and title
           results.set(final.id, final);
         }
       }
@@ -276,7 +279,11 @@ async function main() {
 
   // for (const model of results) {
   //   // TODO bring back the newAnime flag
-  //   await mal.updateAnime(model);
+  //   if (model.new) {
+  //     await mal.addAnime(model);
+  //   } else {
+  //     await mal.updateAnime(model);
+  //   }
   // }
 }
 
@@ -296,7 +303,9 @@ async function getMalRecord(
     return mal.searchSingleAnime(title)
         .then((res: MalAnimeModel) => {
           if (res.title === title) {
-            return convertMalAnimeModel(res);
+            const model = convertMalAnimeModel(res);
+            model.newAnime = true;
+            return model;
           } else {
             return null;
           }

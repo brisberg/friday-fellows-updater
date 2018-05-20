@@ -85,6 +85,8 @@ describe('normalizeAnimePayload function', () => {
       date_start: '2014-01-02',
       date_finish: '2014-04-05',
       tags: 'tag1',
+      title: 'foo',
+      new: true,
     };
     record = {
       series_animedb_id: '12345',
@@ -113,7 +115,7 @@ describe('normalizeAnimePayload function', () => {
     expect(result).to.deep.equal(model);
   });
 
-  it('should clear identical properties except id', () => {
+  it('should clear identical properties except id, title, and new', () => {
     record.series_animedb_id = model.id + '';
     record.my_watched_episodes = model.episode + '';
     record.my_start_date = model.date_start;
@@ -123,7 +125,7 @@ describe('normalizeAnimePayload function', () => {
     record.my_tags = model.tags;
     const result = normalizeAnimePayload(model, record);
 
-    expect(result).to.deep.equal({id: 12345});
+    expect(result).to.deep.equal({id: 12345, title: 'foo', new: true});
   });
 
   it('should error if the record and model have different ids', () => {

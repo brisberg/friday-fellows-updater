@@ -18,7 +18,6 @@ export interface UserModel {
 export interface AnimeModel {
   id: number;
   episode?: number;
-  title?: string;
   status?: number|string;
   score?: number;
   storage_type?: number;
@@ -31,6 +30,9 @@ export interface AnimeModel {
   enable_rewatching?: number;
   comments?: string;
   tags?: string;
+  // local modifications
+  title?: string;
+  new?: boolean;
 }
 
 export interface MangaModel {
@@ -85,6 +87,8 @@ export interface MalMyAnimeRecord {
   my_rewatching_ep: string;
   my_last_updated: string;
   my_tags: string;
+  // local modification
+  newAnime?: boolean;
 }
 
 export interface MalAnimeModel {

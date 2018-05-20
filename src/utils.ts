@@ -76,10 +76,13 @@ export function generateSeasonTag(season: string): string {
  */
 export function normalizeAnimePayload(
     animePayload: AnimeModel, animeRecord: MalMyAnimeRecord): AnimeModel {
-  const result: AnimeModel = {id: animePayload.id};
+  const result: AnimeModel = {id: animePayload.id, title: animePayload.title};
   if (animePayload.id !== parseInt(animeRecord.series_animedb_id)) {
     throw new Error(
         'Somehow payload and record have different anime ids. Skipping');
+  }
+  if (animePayload.new) {
+    result.new = animePayload.new;
   }
   if (animePayload.episode &&
       animePayload.episode !== parseInt(animeRecord.my_watched_episodes)) {
