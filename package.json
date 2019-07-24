@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "chinmei": "^1.2.2",
-    "googleapis": "27",
+    "googleapis": "^41.0.1",
     "node": "^10.0.0",
     "npm": "^6.0.1",
     "typescript": "^2.8.3"
