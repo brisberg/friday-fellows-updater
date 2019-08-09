@@ -1,19 +1,20 @@
-const fs = require('fs');
-const readline = require('readline');
-const {google} = require('googleapis');
+import {readFile, writeFile} from 'fs';
+import {createInterface} from 'readline';
+import {google} from 'googleapis';
+import { Credentials } from 'google-auth-library/build/src/auth/credentials';
 const OAuth2Client = google.auth.OAuth2;
 const TOKEN_PATH = 'credentials.json';
 
- export function initializeGoogleClient(SCOPES) {
+ export function initializeGoogleClient(scopes) {
     return new Promise((resolve, reject) => {
         // Load client secrets from a local file.
-        fs.readFile('client_secret.json', (err, content) => {
+        readFile('client_secret.json', (err, content: Buffer) => {
           if (err) {
               console.log('Error loading client secret file:', err);
               reject(err);
           }
           // Authorize a client with credentials, then call the Google Drive API.
-          authorize(JSON.parse(content), SCOPES, (auth) => {
+          authorize(JSON.parse(content.toString()), scopes, (auth) => {
               resolve(google.sheets({version: 'v4', auth}));
           });
         });
@@ -32,9 +33,9 @@ function authorize(credentials, scopes, callback) {
   const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, (err, token) => {
+  readFile(TOKEN_PATH, (err, token: Buffer) => {
     if (err) return getAccessToken(oAuth2Client, scopes, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));
+    oAuth2Client.setCredentials(token.toString() as Credentials);
     callback(oAuth2Client);
   });
 }
@@ -52,7 +53,7 @@ function getAccessToken(oAuth2Client, scopes, callback) {
     scope: scopes,
   });
   console.log('Authorize this app by visiting this url:', authUrl);
-  const rl = readline.createInterface({
+  const rl = createInterface({
     input: process.stdin,
     output: process.stdout,
   });
@@ -62,7 +63,7 @@ function getAccessToken(oAuth2Client, scopes, callback) {
       if (err) return callback(err);
       oAuth2Client.setCredentials(token);
       // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+      writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
         if (err) console.error(err);
         console.log('Token stored to', TOKEN_PATH);
       });
