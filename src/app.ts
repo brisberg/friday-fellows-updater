@@ -42,32 +42,33 @@ export interface AnimeError {
  * Main runner
  */
 async function main(dryRun = false) {
-  let sheets; // Api Clients
-  let mal;
+  let sheets; // Google Sheets Api Client
+  let mal; // MyAnimeList Api Client
 
   try {
     sheets = await initializeGoogleClient(SCOPES);
-    mal = await initializeChinmeiClient(MAL_CRED_PATH);
+    // mal = await initializeChinmeiClient(MAL_CRED_PATH);
   } catch (err) {
     console.log('Initialization error: ' + err);
     process.exit(1);
   }
 
   console.log('Accessing MAL for user FridayFellows');
-  const listFetchP =
-      mal.getMalUser('FridayFellows', 1, 'all')
-          .then((res: GetMalUserResponse) => {
-            console.log(
-                'Fetched AnimeList, ' + res.anime.length + ' series found.');
-            return res.anime;
-          })
-          .catch((err) => {
-            console.error('Failed to fetch from MyAnimeList');
-            throw err;
-          });
+  // const listFetchP =
+  //     mal.getMalUser('FridayFellows', 1, 'all')
+  //         .then((res: GetMalUserResponse) => {
+  //           console.log(
+  //               'Fetched AnimeList, ' + res.anime.length + ' series found.');
+  //           return res.anime;
+  //         })
+  //         .catch((err) => {
+  //           console.error('Failed to fetch from MyAnimeList');
+  //           throw err;
+  //         });
 
 
-  let animeList = await listFetchP;
+  // let animeList = await listFetchP;
+  const animeList = [];
   const malRecords = new Map<string, MalMyAnimeRecord>();
   const ongoing = new Map<string, AnimeModel>();
   const results = new Map<number, AnimeModel>();
@@ -89,7 +90,7 @@ async function main(dryRun = false) {
           })
           .catch((err) => {
             console.log('GoogleSheets API returned an error.');
-            throw err;
+            console.error(err);
           });
 
   for (let season of seasons) {
