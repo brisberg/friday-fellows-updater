@@ -9,7 +9,7 @@
 import {AxiosResponse} from 'axios';
 import {writeFile} from 'fs';
 
-import {initializeChinmeiClient} from './chinmei.auth';
+// import {initializeChinmeiClient} from './chinmei.auth';
 import {initializeGoogleClient} from './google.auth';
 import {
   convertMalAnimeModel,
@@ -42,7 +42,7 @@ async function main(dryRun = false) {
 
   try {
     sheets = await initializeGoogleClient(SCOPES);
-    mal = await initializeChinmeiClient(MAL_CRED_PATH);
+    // mal = await initializeChinmeiClient(MAL_CRED_PATH);
   } catch (err) {
     console.log('Initialization error: ' + err);
     process.exit(1);
