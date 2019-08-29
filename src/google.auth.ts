@@ -2,7 +2,6 @@ const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 const OAuth2Client = google.auth.OAuth2;
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
 const TOKEN_PATH = 'credentials.json';
 
  export function initializeGoogleClient(SCOPES) {
@@ -14,7 +13,7 @@ const TOKEN_PATH = 'credentials.json';
               reject(err);
           }
           // Authorize a client with credentials, then call the Google Drive API.
-          authorize(JSON.parse(content), (auth) => {
+          authorize(JSON.parse(content), SCOPES, (auth) => {
               resolve(google.sheets({version: 'v4', auth}));
           });
         });
@@ -25,15 +24,16 @@ const TOKEN_PATH = 'credentials.json';
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
  * @param {Object} credentials The authorization client credentials.
+ * @param {string} scopes The scopes to request
  * @param {function} callback The callback to call with the authorized client.
  */
-function authorize(credentials, callback) {
+function authorize(credentials, scopes, callback) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, (err, token) => {
-    if (err) return getAccessToken(oAuth2Client, callback);
+    if (err) return getAccessToken(oAuth2Client, scopes, callback);
     oAuth2Client.setCredentials(JSON.parse(token));
     callback(oAuth2Client);
   });
@@ -43,12 +43,13 @@ function authorize(credentials, callback) {
  * Get and store new token after prompting for user authorization, and then
  * execute the given callback with the authorized OAuth2 client.
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
+ * @param {string} scopes The scopes to request
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(oAuth2Client, callback) {
+function getAccessToken(oAuth2Client, scopes, callback) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
-    scope: SCOPES,
+    scope: scopes,
   });
   console.log('Authorize this app by visiting this url:', authUrl);
   const rl = readline.createInterface({
