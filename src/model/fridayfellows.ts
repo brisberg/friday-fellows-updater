@@ -1,3 +1,9 @@
+/**
+ * Set of type definitions for FridayFellows domain models. These will be used
+ * internally and act as the common storage medium between the different service
+ * models.
+ */
+
 export enum Season {
   Spring = 0,
   Summer,
