@@ -7,21 +7,23 @@ import {createInterface} from 'readline';
 
 import {TOKEN_PATH} from './config';
 
-export function initializeGoogleClient(scopes: Scopes): Promise<any> {
-  return new Promise((resolve, reject) => {
-    // Load client secrets from a local file.
-    readFile('client_secret.json', (err, content: Buffer) => {
+// Really returns a google sheets api client
+export function initializeGoogleClient(scopes: Scopes): any|null {
+  // Load client secrets from a local file.
+  readFile('client_secret.json', (err, content: Buffer) => {
+    if (err) {
+      console.error('Error loading client secret file:', err);
+      return null;
+    }
+    const secret: ClientSecret = JSON.parse(content.toString());
+    // Authorize a client with credentials, then call the Google Drive API.
+    authorize(secret, scopes, (err: Error, auth: OAuth2Client) => {
       if (err) {
-        console.log('Error loading client secret file:', err);
-        reject(err);
+        printGoogleAuthError(err);
+        return null;
       }
-      const secret: ClientSecret = JSON.parse(content.toString());
-      // Authorize a client with credentials, then call the Google Drive API.
-      authorize(secret, scopes, (err: Error, auth: OAuth2Client) => {
-        if (err) reject(err);
 
-        resolve(google.sheets({version: 'v4', auth}));
-      });
+      return google.sheets({version: 'v4', auth});
     });
   });
 }
@@ -81,4 +83,11 @@ function getAccessToken(
       callback(null, oAuth2Client);
     });
   });
+}
+
+/** Small utility to nicely print an error returned from GoogleSheets */
+function printGoogleAuthError(err) {
+  console.error('Error authorizing Google Sheets client:');
+  console.error(err.code + ' ' + err.response.statusText)
+  console.error(err.stack);
 }
