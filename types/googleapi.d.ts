@@ -1,11 +1,16 @@
-export interface ClientSecret {
+/** Custom typings to cover gaps in googleapis module */
+declare module 'contrib/googleapis' {
+  interface ClientSecret {
     installed: {
-        client_id?: string,
-        project_id?: string,
-        auth_uri?: string,
-        token_uri?: string,
-        auth_provider_x509_cert_url?: string,
-        client_secret?: string,
-        redirect_uris?: string[],
+      client_id?: string,
+      project_id?: string,
+      auth_uri?: string,
+      token_uri?: string,
+      auth_provider_x509_cert_url?: string,
+      client_secret?: string,
+      redirect_uris?: string[],
     }
+  }
+
+  type Scopes = string[]|string;
 }

@@ -1,12 +1,13 @@
+import {ClientSecret, Scopes} from 'contrib/googleapis';
 import {readFile, writeFile} from 'fs';
-import {createInterface} from 'readline';
+import {OAuth2Client} from 'google-auth-library';
+import {Credentials} from 'google-auth-library/build/src/auth/credentials';
 import {google} from 'googleapis';
-import {ClientSecret} from '../types/googleapi';
-import { Credentials } from 'google-auth-library/build/src/auth/credentials';
-import { OAuth2Client } from 'google-auth-library';
+import {createInterface} from 'readline';
+
 const TOKEN_PATH = 'credentials.json';
 
- export function initializeGoogleClient(scopes) {
+export function initializeGoogleClient(scopes: Scopes): Promise<OAuth2Client> {
   return new Promise((resolve, reject) => {
     // Load client secrets from a local file.
     readFile('client_secret.json', (err, content: Buffer) => {
@@ -29,12 +30,15 @@ const TOKEN_PATH = 'credentials.json';
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
  * @param {ClientSecret} credentials The authorization client credentials.
- * @param {string} scopes The scopes to request
+ * @param {Scopes} scopes The scopes to request
  * @param {function} callback The callback to call with the authorized client or error.
  */
-function authorize(credentials: ClientSecret, scopes: string, callback: (err: Error, auth?: OAuth2Client) => void) {
+function authorize(
+    credentials: ClientSecret, scopes: Scopes,
+    callback: (err: Error, auth?: OAuth2Client) => void) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
-  const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
+  const oAuth2Client =
+      new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   readFile(TOKEN_PATH, (err, token) => {
@@ -49,10 +53,12 @@ function authorize(credentials: ClientSecret, scopes: string, callback: (err: Er
  * Get and store new token after prompting for user authorization, and then
  * execute the given callback with the authorized OAuth2 client.
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
- * @param {string} scopes The scopes to request
+ * @param {Scopes} scopes The scopes to request
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(oAuth2Client: OAuth2Client, scopes: string, callback: (err: Error, auth?: OAuth2Client) => void) {
+function getAccessToken(
+    oAuth2Client: OAuth2Client, scopes: Scopes,
+    callback: (err: Error, auth?: OAuth2Client) => void) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
