@@ -7,20 +7,22 @@ import { OAuth2Client } from 'google-auth-library';
 const TOKEN_PATH = 'credentials.json';
 
  export function initializeGoogleClient(scopes) {
-    return new Promise((resolve, reject) => {
-        // Load client secrets from a local file.
-        readFile('client_secret.json', (err, content: Buffer) => {
-          if (err) {
-              console.log('Error loading client secret file:', err);
-              reject(err);
-          }
-          const secret: ClientSecret = JSON.parse(content.toString());
-          // Authorize a client with credentials, then call the Google Drive API.
-          authorize(secret, scopes, (auth: OAuth2Client) => {
-              resolve(google.sheets({version: 'v4', auth}));
-          });
-        });
+  return new Promise((resolve, reject) => {
+    // Load client secrets from a local file.
+    readFile('client_secret.json', (err, content: Buffer) => {
+      if (err) {
+        console.log('Error loading client secret file:', err);
+        reject(err);
+      }
+      const secret: ClientSecret = JSON.parse(content.toString());
+      // Authorize a client with credentials, then call the Google Drive API.
+      authorize(secret, scopes, (err: Error, auth: OAuth2Client) => {
+        if (err) reject(err.message);
+
+        resolve(google.sheets({version: 'v4', auth}));
+      });
     });
+  });
 }
 
 /**
@@ -28,9 +30,9 @@ const TOKEN_PATH = 'credentials.json';
  * given callback function.
  * @param {ClientSecret} credentials The authorization client credentials.
  * @param {string} scopes The scopes to request
- * @param {function} callback The callback to call with the authorized client.
+ * @param {function} callback The callback to call with the authorized client or error.
  */
-function authorize(credentials: ClientSecret, scopes: string, callback: (auth: OAuth2Client) => void) {
+function authorize(credentials: ClientSecret, scopes: string, callback: (err: Error, auth?: OAuth2Client) => void) {
   const {client_secret, client_id, redirect_uris} = credentials.installed;
   const oAuth2Client = new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
@@ -39,7 +41,7 @@ function authorize(credentials: ClientSecret, scopes: string, callback: (auth: O
     if (err) return getAccessToken(oAuth2Client, scopes, callback);
     const credentials: Credentials = JSON.parse(token.toString());
     oAuth2Client.setCredentials(credentials);
-    callback(oAuth2Client);
+    callback(null, oAuth2Client);
   });
 }
 
@@ -50,7 +52,7 @@ function authorize(credentials: ClientSecret, scopes: string, callback: (auth: O
  * @param {string} scopes The scopes to request
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(oAuth2Client: OAuth2Client, scopes: string, callback) {
+function getAccessToken(oAuth2Client: OAuth2Client, scopes: string, callback: (err: Error, auth?: OAuth2Client) => void) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
@@ -70,7 +72,7 @@ function getAccessToken(oAuth2Client: OAuth2Client, scopes: string, callback) {
         if (err) console.error(err);
         console.log('Token stored to', TOKEN_PATH);
       });
-      callback(oAuth2Client);
+      callback(null, oAuth2Client);
     });
   });
 }
