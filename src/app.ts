@@ -1,14 +1,7 @@
-// import {
-//   ChinmeiClient,
-//   AnimeModel,
-//   GetMalUserResponse,
-//   MalAnimeModel,
-//   MalMyAnimeRecord,
-//   WatchStatus,
-// } from 'chinmei';
 import {AxiosResponse} from 'axios';
 import {writeFile} from 'fs';
 
+import {LOGS_PATH, MAL_CRED_PATH, SCOPES, SPREADSHEET_ID} from './config';
 // import {initializeChinmeiClient} from './chinmei.auth';
 import {initializeGoogleClient} from './google.auth';
 import {
@@ -21,9 +14,6 @@ import {
   parseVoteCell,
   promisify,
 } from './utils';
-
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
-const MAL_CRED_PATH = 'mal_credentials.json';
 
 export interface AnimeError {
   season: string;
@@ -76,7 +66,7 @@ async function main(dryRun = false) {
 
   const seasons: string[] =
       await promisify(sheets.spreadsheets.get, {
-        spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
+        spreadsheetId: SPREADSHEET_ID,
         fields: 'sheets.properties.title',
       })
           .then((res: AxiosResponse) => {
@@ -94,7 +84,7 @@ async function main(dryRun = false) {
 
     const {votingRows, startDateString} =
         await promisify(sheets.spreadsheets.values.batchGet, {
-          spreadsheetId: '1uKWMRmtN5R0Lf3iNMVmwenZCNeDntGRK7is6Jl8wi6M',
+          spreadsheetId: SPREADSHEET_ID,
           majorDimension: 'ROWS',
           ranges: ['\'' + season + '\'!A2:K30', '\'' + season + '\'!B1:B1'],
         })
@@ -260,14 +250,14 @@ async function main(dryRun = false) {
   }
 
   // print logs
-  const resultsFile = 'logs/' + formatMalDate(new Date()) + '-results.json';
+  const resultsFile = LOGS_PATH + formatMalDate(new Date()) + '-results.json';
   writeFile(
       resultsFile, JSON.stringify(Array.from(results.values())), (err) => {
         if (err) throw err;
 
         console.log('Results writted to ' + resultsFile);
       });
-  const errorsFile = 'logs/' + formatMalDate(new Date()) + '-errors.json';
+  const errorsFile = LOGS_PATH + formatMalDate(new Date()) + '-errors.json';
   writeFile(errorsFile, JSON.stringify(errors), (err) => {
     if (err) throw err;
 
