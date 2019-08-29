@@ -1,5 +1,5 @@
-import {AxiosResponse} from 'axios';
 import {writeFile} from 'fs';
+import {GaxiosResponse} from 'gaxios';
 
 import {LOGS_PATH, MAL_CRED_PATH, SCOPES, SPREADSHEET_ID} from './config';
 // import {initializeChinmeiClient} from './chinmei.auth';
@@ -69,7 +69,7 @@ async function main(dryRun = false) {
         spreadsheetId: SPREADSHEET_ID,
         fields: 'sheets.properties.title',
       })
-          .then((res: AxiosResponse) => {
+          .then((res: GaxiosResponse) => {
             return res.data.sheets.map((sheet) => sheet.properties.title)
                 .reverse();
           })
@@ -88,7 +88,7 @@ async function main(dryRun = false) {
           majorDimension: 'ROWS',
           ranges: ['\'' + season + '\'!A2:K30', '\'' + season + '\'!B1:B1'],
         })
-            .then((res: AxiosResponse) => {
+            .then((res: GaxiosResponse) => {
               const votingRows = res.data.valueRanges[0].values;
               const startDateString = res.data.valueRanges[1].values[0];
               if (votingRows.length === 0) {
