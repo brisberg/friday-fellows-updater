@@ -7,7 +7,7 @@ import {createInterface} from 'readline';
 
 const TOKEN_PATH = 'credentials.json';
 
-export function initializeGoogleClient(scopes: Scopes): Promise<OAuth2Client> {
+export function initializeGoogleClient(scopes: Scopes): Promise<any> {
   return new Promise((resolve, reject) => {
     // Load client secrets from a local file.
     readFile('client_secret.json', (err, content: Buffer) => {

@@ -37,7 +37,7 @@ export interface AnimeError {
  * Main runner
  */
 async function main(dryRun = false) {
-  let sheets;                     // Google Sheets Api Client
+  let sheets: any;                // Google Sheets Api Client
   let mal: Chinmei.ChinmeiClient; // MyAnimeList Api Client
 
   try {
