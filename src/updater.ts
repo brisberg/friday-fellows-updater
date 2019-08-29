@@ -5,7 +5,15 @@ import {initializeGoogleClient} from './google.auth';
  * @param {boolean} dryRun whether this is a dry run
  * Main runner
  */
-async function main(dryRun: boolean = false) {}
+async function main(dryRun: boolean = false) {
+  console.log(
+      'Starting Friday Fellows updater...' + (dryRun ? ' as dry run' : ''));
+
+  let sheets = await initializeGoogleClient(SCOPES).catch((err) => {
+    console.error(err.code + ' ' + err.response.statusText)
+    console.error(err.stack);
+  })
+}
 
 // Main call
 try {

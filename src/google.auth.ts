@@ -5,7 +5,7 @@ import {Credentials} from 'google-auth-library/build/src/auth/credentials';
 import {google} from 'googleapis';
 import {createInterface} from 'readline';
 
-const TOKEN_PATH = 'credentials.json';
+import {TOKEN_PATH} from './config';
 
 export function initializeGoogleClient(scopes: Scopes): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -18,7 +18,7 @@ export function initializeGoogleClient(scopes: Scopes): Promise<any> {
       const secret: ClientSecret = JSON.parse(content.toString());
       // Authorize a client with credentials, then call the Google Drive API.
       authorize(secret, scopes, (err: Error, auth: OAuth2Client) => {
-        if (err) reject(err.message);
+        if (err) reject(err);
 
         resolve(google.sheets({version: 'v4', auth}));
       });
@@ -29,14 +29,14 @@ export function initializeGoogleClient(scopes: Scopes): Promise<any> {
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
  * given callback function.
- * @param {ClientSecret} credentials The authorization client credentials.
+ * @param {ClientSecret} secret The authorization client secret.
  * @param {Scopes} scopes The scopes to request
  * @param {function} callback The callback to call with the authorized client or error.
  */
 function authorize(
-    credentials: ClientSecret, scopes: Scopes,
+    secret: ClientSecret, scopes: Scopes,
     callback: (err: Error, auth?: OAuth2Client) => void) {
-  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  const {client_secret, client_id, redirect_uris} = secret.installed;
   const oAuth2Client =
       new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
