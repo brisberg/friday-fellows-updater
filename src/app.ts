@@ -1,34 +1,29 @@
-import * as fs from 'fs';
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
-import {initializeGoogleClient} from './google.auth.js';
-
-import * as Chinmei from 'chinmei';
-import {
-  AnimeModel,
-  GetMalUserResponse,
-  MalAnimeModel,
-  MalMyAnimeRecord,
-} from '../types/chinmei';
+// import {
+//   ChinmeiClient,
+//   AnimeModel,
+//   GetMalUserResponse,
+//   MalAnimeModel,
+//   MalMyAnimeRecord,
+//   WatchStatus,
+// } from 'chinmei';
 import {AxiosResponse} from 'axios';
+import {writeFile} from 'fs';
+
+import {initializeChinmeiClient} from './chinmei.auth';
+import {initializeGoogleClient} from './google.auth';
 import {
-  formatMalDate,
-  daysBetween,
   convertMalAnimeModel,
+  daysBetween,
+  formatMalDate,
   generateSeasonTag,
   normalizeAnimePayload,
-  parseVoteCell,
   ParsedCellInfo,
+  parseVoteCell,
   promisify,
 } from './utils';
-const MAL_CRED_PATH = 'mal_credentials.json';
 
-enum STATUS {
-  WATCHING = 1,
-  COMPLETED = 2,
-  ONHOLD = 3,
-  DROPPED = 4,
-  PLANTOWATCH = 6,
-}
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly'];
+const MAL_CRED_PATH = 'mal_credentials.json';
 
 export interface AnimeError {
   season: string;
@@ -42,12 +37,12 @@ export interface AnimeError {
  * Main runner
  */
 async function main(dryRun = false) {
-  let sheets; // Google Sheets Api Client
-  let mal; // MyAnimeList Api Client
+  let sheets;                     // Google Sheets Api Client
+  let mal: Chinmei.ChinmeiClient; // MyAnimeList Api Client
 
   try {
     sheets = await initializeGoogleClient(SCOPES);
-    // mal = await initializeChinmeiClient(MAL_CRED_PATH);
+    mal = await initializeChinmeiClient(MAL_CRED_PATH);
   } catch (err) {
     console.log('Initialization error: ' + err);
     process.exit(1);
@@ -69,11 +64,11 @@ async function main(dryRun = false) {
 
   // let animeList = await listFetchP;
   const animeList = [];
-  const malRecords = new Map<string, MalMyAnimeRecord>();
-  const ongoing = new Map<string, AnimeModel>();
-  const results = new Map<number, AnimeModel>();
+  const malRecords = new Map<string, Chinmei.MalMyAnimeRecord>();
+  const ongoing = new Map<string, Chinmei.AnimeModel>();
+  const results = new Map<number, Chinmei.AnimeModel>();
   const errors: AnimeError[] = [];
-  animeList.forEach((record: MalMyAnimeRecord) => {
+  animeList.forEach((record: Chinmei.MalMyAnimeRecord) => {
     malRecords.set(record.series_title, record);
   });
   console.log('Got all the results');
@@ -135,7 +130,7 @@ async function main(dryRun = false) {
     for (const [index, row] of votingRows.entries()) {
       // let newAnime = false; // flag indicating we should add a new show
       const title = row[0];
-      const record: MalMyAnimeRecord =
+      const record: Chinmei.MalMyAnimeRecord =
           await getMalRecord(title, malRecords, mal);
 
       if (!record) {
@@ -146,7 +141,7 @@ async function main(dryRun = false) {
           row: index,
         });
       } else {
-        const result: AnimeModel = {
+        const result: Chinmei.AnimeModel = {
           id: parseInt(record.series_animedb_id),
           title,
           new: record.newAnime,
@@ -166,7 +161,7 @@ async function main(dryRun = false) {
           const startDate = new Date(seasonStartDate.getTime());
           startDate.setDate(startDate.getDate() + (7 * (episode1Index - 1)));
           result.date_start = formatMalDate(startDate);
-          result.status = STATUS.WATCHING;
+          result.status = Chinmei.WatchStatus.WATCHING;
         }
 
         let endIndex = row.length - 1;
@@ -184,7 +179,7 @@ async function main(dryRun = false) {
 
         if (rowLastVote.votesFor < rowLastVote.votesAgainst) {
           // Anime lost, so this was the last episode we saw
-          result.status = STATUS.DROPPED;
+          result.status = Chinmei.WatchStatus.DROPPED;
           result.episode = rowLastVote.episode;
         } else {
           // Show passed
@@ -204,7 +199,7 @@ async function main(dryRun = false) {
                      (parseInt(record.series_episodes) -
                       ongoingModel.episode)));
                 result.date_finish = formatMalDate(endDate);
-                result.status = STATUS.COMPLETED;
+                result.status = Chinmei.WatchStatus.COMPLETED;
               } else {
                 result.episode = ongoingModel.episode + 13;
                 ongoing.set(
@@ -220,10 +215,10 @@ async function main(dryRun = false) {
                     endDate.getDate() +
                     (7 * (seriesEpisodes + episode1Index - 1)));
                 result.date_finish = formatMalDate(endDate);
-                result.status = STATUS.COMPLETED;
+                result.status = Chinmei.WatchStatus.COMPLETED;
               } else {
                 result.episode = 13;
-                result.status = STATUS.WATCHING;
+                result.status = Chinmei.WatchStatus.WATCHING;
                 ongoing.set(record.series_animedb_id, result);
               }
             }
@@ -233,7 +228,7 @@ async function main(dryRun = false) {
             if (row[row.length - 1] === 'BYE') {
               // last records are BYE weeks, so use the last known vote
               result.episode = rowLastVote.episode;
-              result.status = STATUS.WATCHING;
+              result.status = Chinmei.WatchStatus.WATCHING;
             } else {
               // last record is a successful vote.
               const weeksOfSeason: number = daysBetween(
@@ -243,9 +238,9 @@ async function main(dryRun = false) {
                   rowLastVote.episode + (weeksOfSeason - rowLastVote.weekIndex);
               if (result.episode >= parseInt(record.series_episodes)) {
                 result.episode = parseInt(record.series_episodes);
-                result.status = STATUS.COMPLETED;
+                result.status = Chinmei.WatchStatus.COMPLETED;
               } else {
-                result.status = STATUS.WATCHING;
+                result.status = Chinmei.WatchStatus.WATCHING;
               }
             }
           }
@@ -266,14 +261,14 @@ async function main(dryRun = false) {
 
   // print logs
   const resultsFile = 'logs/' + formatMalDate(new Date()) + '-results.json';
-  fs.writeFile(
+  writeFile(
       resultsFile, JSON.stringify(Array.from(results.values())), (err) => {
         if (err) throw err;
 
         console.log('Results writted to ' + resultsFile);
       });
   const errorsFile = 'logs/' + formatMalDate(new Date()) + '-errors.json';
-  fs.writeFile(errorsFile, JSON.stringify(errors), (err) => {
+  writeFile(errorsFile, JSON.stringify(errors), (err) => {
     if (err) throw err;
 
     console.log('Results writted to ' + errorsFile);
@@ -298,14 +293,14 @@ async function main(dryRun = false) {
  * @return {MalMyAnimeRecord} Found record or undefined
  */
 async function getMalRecord(
-    title: string, malRecords: Map<string, MalMyAnimeRecord>,
-    mal: Chinmei): Promise<MalMyAnimeRecord|null> {
+    title: string, malRecords: Map<string, Chinmei.MalMyAnimeRecord>,
+    mal: Chinmei.ChinmeiClient): Promise<Chinmei.MalMyAnimeRecord|null> {
   if (malRecords.has(title)) {
     return Promise.resolve(malRecords.get(title));
   } else {
     // If found, add the new show with the specified episode count
     return mal.searchSingleAnime(title)
-        .then((res: MalAnimeModel) => {
+        .then((res: Chinmei.MalAnimeModel) => {
           if (res.title === title) {
             const model = convertMalAnimeModel(res);
             model.newAnime = true;
@@ -328,30 +323,4 @@ try {
   main(args[0] === '--dryRun');
 } catch (err) {
   console.log(err);
-}
-
-/**
- * @param {string} credPath path to Mal Credentials file.
- * @return {Chinmei} Authenticated Chinmei API Client
- */
-function initializeChinmeiClient(credPath: string): Chinmei {
-  return new Promise(async (resolve, reject) => {
-    // Load mal credentials from a local file.
-    fs.readFile(credPath, async (err, content) => {
-      if (err) {
-        console.log('Error loading MAL client credentials file:', err);
-        reject(err);
-      }
-      // Authorize a client with credentials, then verify with MAL api.
-      const {username, password} = JSON.parse(content.toString());
-
-      try {
-        const mal = new Chinmei(username, password);
-        await mal.verifyAuth();
-        resolve(mal);
-      } catch (err) {
-        reject(err);
-      }
-    });
-  });
 }

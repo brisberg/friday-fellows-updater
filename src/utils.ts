@@ -1,4 +1,4 @@
-import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from '../types/chinmei';
+// import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from 'chinmei';
 
 /**
  * Used to convert google api calls into promises for use with await
@@ -75,8 +75,8 @@ export function generateSeasonTag(season: string): string {
  *  @return {AnimeModel} Resulting de-duped model
  */
 export function normalizeAnimePayload(
-    animePayload: AnimeModel, animeRecord: MalMyAnimeRecord): AnimeModel {
-  const result: AnimeModel = {id: animePayload.id, title: animePayload.title};
+    animePayload: Chinmei.AnimeModel, animeRecord: Chinmei.MalMyAnimeRecord): Chinmei.AnimeModel {
+  const result: Chinmei.AnimeModel = {id: animePayload.id, title: animePayload.title};
   if (animePayload.id !== parseInt(animeRecord.series_animedb_id)) {
     throw new Error(
         'Somehow payload and record have different anime ids. Skipping');
@@ -115,7 +115,7 @@ export function normalizeAnimePayload(
  * @param {MalAnimeModel} model Model returned from searchSingleAnime()
  * @return {MalMyAnimeRecord} converted Record
  */
-export function convertMalAnimeModel(model: MalAnimeModel): MalMyAnimeRecord {
+export function convertMalAnimeModel(model: Chinmei.MalAnimeModel): Chinmei.MalMyAnimeRecord {
   return {
     series_animedb_id: model.id,
     series_title: model.title,

@@ -1,8 +1,12 @@
 import 'mocha';
 
 import {expect} from 'chai';
+// import 'chinmei';
 
-import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from '../types/chinmei';
+// import {AnimeModel, MalAnimeModel, MalMyAnimeRecord} from 'chinmei';
+// import AnimeModel = Chinmei.AnimeModel;
+// import {MalMyAnimeRecord} = Chinmei;
+// with namespace chinmei;
 
 import {
   convertMalAnimeModel,
@@ -73,8 +77,8 @@ describe('generateSeasonTag function', () => {
 });
 
 describe('normalizeAnimePayload function', () => {
-  let model: AnimeModel;
-  let record: MalMyAnimeRecord;
+  let model: Chinmei.AnimeModel;
+  let record: Chinmei.MalMyAnimeRecord;
 
   before(() => {
     model = {
@@ -138,7 +142,7 @@ describe('normalizeAnimePayload function', () => {
 });
 
 describe('convertMalAnimeModel function', () => {
-  let model: MalAnimeModel;
+  let model: Chinmei.MalAnimeModel;
 
   before(() => {
     model = {
@@ -157,7 +161,7 @@ describe('convertMalAnimeModel function', () => {
   });
 
   it('should convert to a MalMyAnimeRecord', () => {
-    const expected: MalMyAnimeRecord = {
+    const expected: Chinmei.MalMyAnimeRecord = {
       series_animedb_id: model.id,
       series_title: model.title,
       series_synonyms: model.synonyms,
