@@ -10,8 +10,10 @@ async function main(dryRun: boolean = false) {
       'Starting Friday Fellows updater...' + (dryRun ? ' as dry run' : ''));
 
   let sheets = await initializeGoogleClient(SCOPES).catch((err) => {
+    console.error('Error authorizing Google Sheets client:');
     console.error(err.code + ' ' + err.response.statusText)
     console.error(err.stack);
+    process.exit(1);
   })
 }
 
