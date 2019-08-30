@@ -1,5 +1,6 @@
 import {writeFile} from 'fs';
 import {GaxiosResponse} from 'gaxios';
+import {sheets_v4} from 'googleapis';
 
 import {LOGS_PATH, MAL_CRED_PATH, SCOPES, SPREADSHEET_ID} from './config';
 // import {initializeChinmeiClient} from './chinmei.auth';
@@ -27,7 +28,7 @@ export interface AnimeError {
  * Main runner
  */
 async function main(dryRun = false) {
-  let sheets: any;                // Google Sheets Api Client
+  let sheets: sheets_v4.Sheets;   // Google Sheets Api Client
   let mal: Chinmei.ChinmeiClient; // MyAnimeList Api Client
 
   try {
