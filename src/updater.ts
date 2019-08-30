@@ -3,6 +3,7 @@ import {sheets_v4} from 'googleapis';
 
 import {SCOPES, SPREADSHEET_ID} from './config';
 import {initializeGoogleClient, printGoogleAuthError} from './google.auth';
+import {SpreadsheetModel, WorksheetModel} from './model/sheets';
 
 /**
  * @param {boolean} dryRun whether this is a dry run
@@ -20,24 +21,61 @@ async function main(dryRun: boolean = false) {
     console.error('Fatal: Could not initialize GoogleSheets Client');
     process.exit(1);
   }
+  console.info('\tGoogleSheets client service initialized');
 
-  console.log('querying sheets api');
-  const data =
-      await sheets.spreadsheets
-          .get({
-            spreadsheetId: SPREADSHEET_ID,
-            fields: 'sheets.properties.title',
-          })
-          .then((res: GaxiosResponse) => {
-            return res.data.sheets
-                .map((sheet: sheets_v4.Schema$Sheet) => sheet.properties.title)
-                .reverse();
-          })
-          .catch((err) => {
-            console.error('Error fetching GoogleSheets data:');
-            printGoogleAuthError(err);
-          });
-  console.log(data);
+  process.stdout.write(
+      'Fetching spreadsheet metadata for: ' + SPREADSHEET_ID + '...');
+
+  const metadataFields = [
+    'spreadsheetId',
+    'properties.title',
+    'sheets.properties.sheetId',
+    'sheets.properties.title',
+    'sheets.properties.gridProperties',
+  ].join(',');
+
+  const request = sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+    fields: metadataFields,
+  });
+
+  const sheetModel = await request.then(handleSpreadsheetsGetResponse);
+
+  // request.catch((err) => {
+  //   console.error('Error fetching GoogleSheets data:');
+  //   printGoogleAuthError(err);
+  // });
+  console.log('done');
+  console.log(sheetModel);
+}
+
+/**
+ * Convert a response from spreadsheets.get into a SpreadsheetModel domain
+ * object.
+ */
+function handleSpreadsheetsGetResponse(
+    res: GaxiosResponse<sheets_v4.Schema$Spreadsheet>): SpreadsheetModel {
+  const data = res.data;
+
+  const sheetModel: SpreadsheetModel = {
+    spreadsheetId: data.spreadsheetId,
+    title: data.properties.title,
+    sheets: [],
+  };
+
+  const sheets: WorksheetModel[] = data.sheets.map((sheet) => {
+    return {
+      title: sheet.properties.title,
+      sheetId: sheet.properties.sheetId,
+      gridProperties: {
+        rowCount: sheet.properties.gridProperties.rowCount,
+        columnCount: sheet.properties.gridProperties.columnCount,
+      },
+      data: [],
+    };
+  });
+  sheetModel.sheets = sheets.reverse();
+  return sheetModel;
 }
 
 // Main call

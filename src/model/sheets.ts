@@ -2,16 +2,16 @@
  * Set of type interfaces for storing and interacting with spreadsheets data.
  */
 
-export interface SpeadsheetModel {
+export interface SpreadsheetModel {
   spreadsheetId: string;
   title: string;
-  worksheets: WorksheetModel[];
+  sheets: WorksheetModel[];
 }
 
 export interface WorksheetModel {
   sheetId: number;
   title: string;
-  gridProperties: {rowCount: number; columnCount: number;};
+  gridProperties: {rowCount?: number; columnCount?: number;};
   data: WorksheetRowModel[];
 }
 
