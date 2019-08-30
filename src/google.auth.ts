@@ -6,25 +6,31 @@ import {google, sheets_v4} from 'googleapis';
 import {createInterface} from 'readline';
 import {promisify} from 'util';
 
-import {TOKEN_PATH} from './config';
+import {SECRET_PATH, TOKEN_PATH} from './config';
 
 const readFileAsync = promisify(readFile);
+const writeFileAsync = promisify(writeFile);
 
 // Initialize and return an autenticated GoogleSheets Client
 export async function initializeGoogleClient(scopes: Scopes):
     Promise<sheets_v4.Sheets> {
   // Load client secrets from a local file.
-  const content: Buffer|void = await readFileAsync('client_secret.json')
-  // .catch((err) => {
-  //   console.error('Error loading client secret file:', err);
-  // });
-  const secret: ClientSecret = JSON.parse(content.toString());
+  let content: Buffer;
+  try {
+    content = await readFileAsync(SECRET_PATH)
+  } catch (err) {
+    console.error('Error loading client secret file:', err);
+    return Promise.reject(err);
+  };
+  const secret: ClientSecret = JSON.parse((content as Buffer).toString());
+
   // Authorize a client with credentials, then call the Google Drive API.
   return await authorize(secret, scopes)
       .then((auth: OAuth2Client) => {
         return google.sheets({version: 'v4', auth});
       })
       .catch((err: Error) => {
+        console.error('Error authorizing Google Sheets client:');
         printGoogleAuthError(err);
         return Promise.reject(err);
       });
@@ -44,7 +50,7 @@ async function authorize(
       new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
-  const token = await readFileAsync(TOKEN_PATH).catch((err) => {
+  const token = await readFileAsync(TOKEN_PATH).catch(() => {
     return getAccessToken(oAuth2Client, scopes);
   });
   if (!token) throw new Error('Error getting auth token');
@@ -53,6 +59,19 @@ async function authorize(
   return oAuth2Client;
 };
 
+function ask(prompt: string) {
+  const rli = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise<string>((resolve) => {
+    rli.question(prompt, (code) => {
+      rli.close();
+      resolve(code);
+    });
+  })
+}
+
 /**
  * Get and store new token after prompting for user authorization, and then
  * execute the given callback with the authorized OAuth2 client.
@@ -60,35 +79,31 @@ async function authorize(
  * @param {Scopes} scopes The scopes to request
 //  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
+async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
   });
   console.log('Authorize this app by visiting this url:', authUrl);
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-  rl.question('Enter the code from that page here: ', (code) => {
-    rl.close();
-    oAuth2Client.getToken(code, (err, token) => {
-      // if (err) return callback(err);
-      oAuth2Client.setCredentials(token);
+
+  await ask('Enter the code from that page here: ').then((code) => {
+    return oAuth2Client.getToken(code).then(async (res) => {
+      oAuth2Client.setCredentials(res.tokens);
       // Store the token to disk for later program executions
-      writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-        if (err) console.error(err);
-        console.log('Token stored to', TOKEN_PATH);
-      });
-      // callback(null, oAuth2Client);
+      await writeFileAsync(TOKEN_PATH, JSON.stringify(res.tokens))
+          .then(() => {
+            console.log('Token stored to', TOKEN_PATH);
+          })
+          .catch((err) => {
+            if (err) console.error(err);
+          });
       return oAuth2Client;
     });
   });
 }
 
 /** Small utility to nicely print an error returned from GoogleSheets */
-function printGoogleAuthError(err) {
-  console.error('Error authorizing Google Sheets client:');
+export function printGoogleAuthError(err) {
   console.error(err.code + ' ' + err.response.statusText)
   console.error(err.stack);
 }

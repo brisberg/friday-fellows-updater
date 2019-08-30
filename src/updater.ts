@@ -2,7 +2,7 @@ import {GaxiosResponse} from 'gaxios';
 import {sheets_v4} from 'googleapis';
 
 import {SCOPES, SPREADSHEET_ID} from './config';
-import {initializeGoogleClient} from './google.auth';
+import {initializeGoogleClient, printGoogleAuthError} from './google.auth';
 
 /**
  * @param {boolean} dryRun whether this is a dry run
@@ -12,9 +12,16 @@ async function main(dryRun: boolean = false) {
   console.log(
       'Starting Friday Fellows updater...' + (dryRun ? ' as dry run' : ''));
 
-  let sheets = await initializeGoogleClient(SCOPES);
-  if (!sheets) return;
+  let sheets: sheets_v4.Sheets;
 
+  try {
+    sheets = await initializeGoogleClient(SCOPES);
+  } catch (err) {
+    console.error('Fatal: Could not initialize GoogleSheets Client');
+    process.exit(1);
+  }
+
+  console.log('querying sheets api');
   const data =
       await sheets.spreadsheets
           .get({
@@ -26,7 +33,10 @@ async function main(dryRun: boolean = false) {
                 .map((sheet: sheets_v4.Schema$Sheet) => sheet.properties.title)
                 .reverse();
           })
-
+          .catch((err) => {
+            console.error('Error fetching GoogleSheets data:');
+            printGoogleAuthError(err);
+          });
   console.log(data);
 }
 
