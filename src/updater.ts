@@ -1,3 +1,6 @@
+import {GaxiosResponse} from 'gaxios';
+import {sheets_v4} from 'googleapis';
+
 import {SCOPES, SPREADSHEET_ID} from './config';
 import {initializeGoogleClient} from './google.auth';
 
@@ -9,8 +12,22 @@ async function main(dryRun: boolean = false) {
   console.log(
       'Starting Friday Fellows updater...' + (dryRun ? ' as dry run' : ''));
 
-  let sheets = initializeGoogleClient(SCOPES);
-  if (!sheets) process.exit(1);
+  let sheets = await initializeGoogleClient(SCOPES);
+  if (!sheets) return;
+
+  const data =
+      await sheets.spreadsheets
+          .get({
+            spreadsheetId: SPREADSHEET_ID,
+            fields: 'sheets.properties.title',
+          })
+          .then((res: GaxiosResponse) => {
+            return res.data.sheets
+                .map((sheet: sheets_v4.Schema$Sheet) => sheet.properties.title)
+                .reverse();
+          })
+
+  console.log(data);
 }
 
 // Main call

@@ -28,15 +28,20 @@ export interface AnimeError {
  * Main runner
  */
 async function main(dryRun = false) {
-  let sheets: sheets_v4.Sheets;   // Google Sheets Api Client
-  let mal: Chinmei.ChinmeiClient; // MyAnimeList Api Client
+  let sheets: sheets_v4.Sheets|void; // Google Sheets Api Client
+  let mal: Chinmei.ChinmeiClient;    // MyAnimeList Api Client
 
   try {
-    sheets = await initializeGoogleClient(SCOPES);
+    sheets = await initializeGoogleClient(SCOPES).catch((err) => {
+      console.log('GoogleSheets Client Initialization error: ' + err);
+      process.exit(1);
+    });
     // mal = await initializeChinmeiClient(MAL_CRED_PATH);
   } catch (err) {
-    console.log('Initialization error: ' + err);
-    process.exit(1);
+  }
+
+  if (!sheets) {
+    return;
   }
 
   console.log('Accessing MAL for user FridayFellows');
