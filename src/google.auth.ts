@@ -50,12 +50,15 @@ async function authorize(
       new OAuth2Client(client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
-  const token = await readFileAsync(TOKEN_PATH).catch(() => {
-    return getAccessToken(oAuth2Client, scopes);
-  });
-  if (!token) throw new Error('Error getting auth token');
-  const credentials: Credentials = JSON.parse(token.toString());
-  oAuth2Client.setCredentials(credentials);
+  await readFileAsync(TOKEN_PATH)
+      .then((token) => {
+        const credentials: Credentials = JSON.parse(token.toString());
+        oAuth2Client.setCredentials(credentials);
+      })
+      .catch(() => {
+        return getAccessToken(oAuth2Client, scopes);
+      });
+
   return oAuth2Client;
 };
 
@@ -73,11 +76,11 @@ function ask(prompt: string) {
 }
 
 /**
- * Get and store new token after prompting for user authorization, and then
- * execute the given callback with the authorized OAuth2 client.
+ * Get and store new token after prompting for user authorization, then stores
+ * the credentials inthe provided OAuth2 client and writes the token to disk for
+ * future invocations.
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {Scopes} scopes The scopes to request
-//  * @param {getEventsCallback} callback The callback for the authorized client.
  */
 async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
   const authUrl = oAuth2Client.generateAuthUrl({
@@ -86,7 +89,7 @@ async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
   });
   console.log('Authorize this app by visiting this url:', authUrl);
 
-  await ask('Enter the code from that page here: ').then((code) => {
+  return await ask('Enter the code from that page here: ').then((code) => {
     return oAuth2Client.getToken(code).then(async (res) => {
       oAuth2Client.setCredentials(res.tokens);
       // Store the token to disk for later program executions
@@ -95,9 +98,9 @@ async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
             console.log('Token stored to', TOKEN_PATH);
           })
           .catch((err) => {
+            console.warn('Warning: Failed to write token to disk.');
             if (err) console.error(err);
           });
-      return oAuth2Client;
     });
   });
 }
