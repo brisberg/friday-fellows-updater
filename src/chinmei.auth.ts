@@ -1,3 +1,11 @@
+/**
+ * MyAnimeList authentication client. This will handle authenticating a
+ * ChinmeiClient for use with the MAL API.
+ *
+ * DEPRECATED: Since June 2018 the MAL API is defunct. This library and module
+ * are inoperable until the API is restored.
+ */
+
 import Chinmei from 'chinmei';
 import {readFile} from 'fs';
 

@@ -1,3 +1,7 @@
+/**
+ * FridayFellowsUpdater main function and the starting point for the process.
+ */
+
 import {GaxiosResponse} from 'gaxios';
 import {sheets_v4} from 'googleapis';
 

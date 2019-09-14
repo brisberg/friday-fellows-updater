@@ -1,3 +1,11 @@
+/**
+ * FridayFellowsUpdater main file and script entry point.
+ *
+ * DEPRECATED: As of Aug 2019, this prototype is far too messy to be of value is
+ * deprecated in favor of updater.ts. It remains here as a deference for that
+ * development effort.
+ */
+
 import {writeFile} from 'fs';
 import {GaxiosResponse} from 'gaxios';
 import {sheets_v4} from 'googleapis';

@@ -1,3 +1,8 @@
+/**
+ * Configuration options for FridayFellowsUpdater and client services. Suitable
+ * to override per environment
+ */
+
 /// General configs
 export const LOGS_PATH = 'logs/';
 

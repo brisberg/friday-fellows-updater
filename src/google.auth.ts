@@ -1,3 +1,10 @@
+/**
+ * Authentication library for GoogleSheets API. Modified from the Node
+ * QuickStart sample on the Sheets Developer website.
+ *
+ * Handles the Oauth2 Flow for authenticating a GoogleClient.
+ */
+
 import {ClientSecret, Scopes} from 'contrib/googleapis';
 import {readFile, writeFile} from 'fs';
 import {OAuth2Client} from 'google-auth-library';
