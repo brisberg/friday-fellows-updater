@@ -41,7 +41,6 @@ export async function initializeGoogleClient(scopes: Scopes):
  * given callback function.
  * @param {ClientSecret} secret The authorization client secret.
  * @param {Scopes} scopes The scopes to request
-//  * @param {function} callback The callback to call with the authorized client or error.
  */
 async function authorize(
     secret: ClientSecret, scopes: Scopes): Promise<OAuth2Client> {
@@ -89,9 +88,8 @@ async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
   });
   console.log('Authorize this app by visiting this url:', authUrl);
 
-  return await ask('Enter the code from that page here: ').then((code) => {
+  await ask('Enter the code from that page here: ').then((code) => {
     return oAuth2Client.getToken(code).then(async (res) => {
-      oAuth2Client.setCredentials(res.tokens);
       // Store the token to disk for later program executions
       await writeFileAsync(TOKEN_PATH, JSON.stringify(res.tokens))
           .then(() => {
@@ -101,6 +99,8 @@ async function getAccessToken(oAuth2Client: OAuth2Client, scopes: Scopes) {
             console.warn('Warning: Failed to write token to disk.');
             if (err) console.error(err);
           });
+
+      oAuth2Client.setCredentials(res.tokens);
     });
   });
 }

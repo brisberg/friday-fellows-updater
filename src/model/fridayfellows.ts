@@ -11,7 +11,7 @@ export enum Season {
   Winter,
 }
 
-export interface seasonModel {
+export interface SeasonModel {
   formattedName: string; // ex. 'Winter 2014'
   year: number;
   season: Season;
