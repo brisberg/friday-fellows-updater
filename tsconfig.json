@@ -4,11 +4,11 @@
     "module": "commonjs",
     "outDir": "dist",
     "sourceMap": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true
   },
   "files": [
     "./types/chinmei.d.ts",
-    "./types/googleapi.d.ts",
+    "./types/googleapi.d.ts"
   ],
   "include": [
     "src/**/*.ts"
