@@ -33,8 +33,7 @@ export function formatMalDate(date: Date) {
  */
 function getMonth(date: Date) {
   const month = date.getMonth() + 1;
-  return month < 10 ? '0' + month :
-                      '' + month; // ('' + month) for string result
+  return month < 10 ? '0' + month : String(month);
 }
 
 /**
@@ -43,7 +42,7 @@ function getMonth(date: Date) {
  */
 function getDate(date: Date) {
   const day = date.getDate();
-  return day < 10 ? '0' + day : '' + day; // ('' + day) for string result
+  return day < 10 ? '0' + day : String(day);
 }
 
 /**
