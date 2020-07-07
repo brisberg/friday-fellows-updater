@@ -17,7 +17,7 @@
     "chinmei": "^1.2.2",
     "googleapis": "^48.0.0",
     "node": "^10.19.0",
-    "npm": "^6.14.2",
+    "npm": "^6.14.6",
     "util": "^0.12.2"
   },
   "devDependencies": {
